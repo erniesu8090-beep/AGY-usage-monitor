@@ -13,7 +13,7 @@ Google Antigravity 2.0、Antigravity IDE 与 Antigravity CLI 的本地用量、�
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0%20npm%20%E4%BE%9D%E8%B5%96-10b981?style=flat-square)](#本地开发)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-6366f1?style=flat-square)](#客户端支持)
 
-[English](README.md) · 简体中文
+[English](README.md) · [繁體中文](README.zh-TW.md) · 简体中文
 
 [功能](#功能) · [截图](#截图) · [客户端支持](#客户端支持) · [安装](#安装) · [使用方式](#使用方式) · [开发](#本地开发)
 

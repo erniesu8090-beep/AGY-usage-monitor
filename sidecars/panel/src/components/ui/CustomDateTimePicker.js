@@ -76,7 +76,7 @@ export const CustomDateTimePicker = defineComponent({
       {
         type: 'button',
         className: 'icon-btn',
-        'aria-label': '上个月',
+        'aria-label': '上個月',
         onClick: (e) => {
           e.stopPropagation();
           viewMonth -= 1;
@@ -95,7 +95,7 @@ export const CustomDateTimePicker = defineComponent({
       {
         type: 'button',
         className: 'icon-btn',
-        'aria-label': '下个月',
+        'aria-label': '下個月',
         onClick: (e) => {
           e.stopPropagation();
           viewMonth += 1;
@@ -136,7 +136,7 @@ export const CustomDateTimePicker = defineComponent({
     }
 
     const timeRow = h('div', { className: 'dt-time-row' }, [
-      h('span', { className: 'text-muted', text: '时 / 分' }),
+      h('span', { className: 'text-muted', text: '時 / 分' }),
       h('div', { className: 'dt-time-controls' }, [
         h('div', { className: 'dt-mini-step' }, [
           h('button', {

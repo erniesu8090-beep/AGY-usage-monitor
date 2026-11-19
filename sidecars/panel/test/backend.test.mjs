@@ -440,7 +440,7 @@ test('trendSeries buckets hourly for <=72h windows (today/24h) and daily for >72
   const trend7d = p7d.consumption.trendSeries;
   assert.ok(trend7d.length >= 7 && trend7d.length <= 8);
   assert.equal(trend7d[0].granularity, 'day');
-  assert.match(trend7d[0].fullLabel, /\d+月\d+日 \(周[日一二三四五六]\)/);
+  assert.match(trend7d[0].fullLabel, /\d+月\d+日 \(週[日一二三四五六]\)/);
   assert.equal(trend7d.reduce((sum, b) => sum + b.tokens, 0), 900);
 });
 
@@ -645,7 +645,7 @@ test('trendSeries preserves 1-day-per-slot granularity for >90 day spans and rec
   const trendAll = pAll.consumption.trendSeries;
   assert.ok(trendAll.length >= 120 && trendAll.length <= 122, `Expected ~121 daily slots, got ${trendAll.length}`);
   assert.equal(trendAll[0].granularity, 'day');
-  assert.match(trendAll[0].fullLabel, /^\d{4}年\d+月\d+日 \(周[日一二三四五六]\)$/);
+  assert.match(trendAll[0].fullLabel, /^\d{4}年\d+月\d+日 \(週[日一二三四五六]\)$/);
   assert.equal(trendAll.reduce((sum, b) => sum + b.tokens, 0), 30700 + 37800);
   assert.equal(trendAll.reduce((sum, b) => sum + b.calls, 0), 2);
 
@@ -1950,7 +1950,7 @@ test('provisions Antigravity CLI statusLine safely and renders live capsule from
       color: false,
     }
   );
-  assert.equal(plainCapsule, '● 0 运行中   11.8s | 38.1 t/s | 余 57% | ◎ 17%');
+  assert.equal(plainCapsule, '● 0 執行中   11.8s | 38.1 t/s | 餘 57% | ◎ 17%');
 
   const ansiCapsule = h.formatCliStatusLineCapsule(
     {
@@ -1973,7 +1973,7 @@ test('provisions Antigravity CLI statusLine safely and renders live capsule from
   assert.equal(/\x1b\]/.test(ansiCapsule), false, 'Contains zero OSC sequences so Bubble Tea width never breaks');
   assert.equal(
     ansiCapsule.replace(/\x1b\[[0-9;]*m/g, ''),
-    '● 2 运行中 · 1 子   1.3s | 68.4 t/s | 余 22% | ◎ 75%'
+    '● 2 執行中 · 1 子   1.3s | 68.4 t/s | 餘 22% | ◎ 75%'
   );
 
   // Full 3-column single-line bar with left shortcuts, centered metrics, and right mode/model/effort
@@ -2001,7 +2001,7 @@ test('provisions Antigravity CLI statusLine safely and renders live capsule from
   assert.equal(/\x1b\[48;/.test(inlineBar120), false, 'Inline 3-column bar has zero background SGR');
   const plainBar120 = inlineBar120.replace(/\x1b\[[0-9;]*m/g, '');
   assert.ok(plainBar120.startsWith('? for shortcuts  '), 'Keeps ? for shortcuts on the left');
-  assert.ok(plainBar120.includes('● 2 运行中   5.6s | 22.0 t/s | 余 54% | ◎ 2%'), 'Centers capsule metrics inline');
+  assert.ok(plainBar120.includes('● 2 執行中   5.6s | 22.0 t/s | 餘 54% | ◎ 2%'), 'Centers capsule metrics inline');
   assert.ok(plainBar120.endsWith('  auto · Gemini 4 Hydrogen · medium'), 'Renders deduplicated mode · model · effort on the right');
   assert.equal(h.cliDisplayWidth(inlineBar120), 119, 'Fits cleanly within terminalWidth - 1 without wrapping');
 
@@ -2174,7 +2174,7 @@ test('provisions Antigravity CLI statusLine safely and renders live capsule from
       input: stdinPayload,
       encoding: 'utf8',
     }).trim();
-    assert.equal(capsuleOut, '● 0 运行中   1.8s | 38.1 t/s | 余 57% | ◎ 17%');
+    assert.equal(capsuleOut, '● 0 執行中   1.8s | 38.1 t/s | 餘 57% | ◎ 17%');
 
     // Full 3-column single-line E2E with terminal_width + cycle_mode + model + native stdin quota fallback
     const emptySnapDir = join(tempRoot, 'empty-data');
@@ -2212,7 +2212,7 @@ test('provisions Antigravity CLI statusLine safely and renders live capsule from
     assert.equal(/\x1b\[48;/.test(fullLineOut), false, 'E2E ANSI output has zero background fill');
     const plainFullLine = fullLineOut.replace(/\x1b\[[0-9;]*m/g, '');
     assert.ok(plainFullLine.startsWith('? for shortcuts  '));
-    assert.ok(plainFullLine.includes('● 1 运行中   1.8s | 38.1 t/s | 余 54% | ◎ 2%'));
+    assert.ok(plainFullLine.includes('● 1 執行中   1.8s | 38.1 t/s | 餘 54% | ◎ 2%'));
     assert.ok(plainFullLine.endsWith('  auto · Gemini 4 Hydrogen · medium'));
     assert.equal(h.cliDisplayWidth(fullLineOut), 129);
 
@@ -2223,7 +2223,7 @@ test('provisions Antigravity CLI statusLine safely and renders live capsule from
         input: stdinPayload,
         encoding: 'utf8',
       }).trim();
-      assert.equal(cmdCapsuleOut, '● 0 运行中   1.8s | 38.1 t/s | 余 57% | ◎ 17%');
+      assert.equal(cmdCapsuleOut, '● 0 執行中   1.8s | 38.1 t/s | 餘 57% | ◎ 17%');
 
       const spaceDir = join(tempRoot, 'Dir With Spaces');
       mkdirSync(spaceDir, { recursive: true });
@@ -2239,7 +2239,7 @@ test('provisions Antigravity CLI statusLine safely and renders live capsule from
         input: stdinPayload,
         encoding: 'utf8',
       }).trim();
-      assert.equal(autorunOut, '● 0 运行中   1.8s | 38.1 t/s | 余 57% | ◎ 17%');
+      assert.equal(autorunOut, '● 0 執行中   1.8s | 38.1 t/s | 餘 57% | ◎ 17%');
     }
 
     // Verify real non-test.invalid buildTelemetryPayload writes cli-status-snapshot.json cleanly without throwing

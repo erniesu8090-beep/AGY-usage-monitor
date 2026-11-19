@@ -50,8 +50,8 @@ export function resolveQuotaCapsuleSummary(quotas) {
   const weekly = quotas.weekly;
   const pools = Array.isArray(quotas.pools) ? quotas.pools : [];
   const candidates = [];
-  const defaultPoolName = isEnglishLocale() ? 'Active Pool' : '当前池';
-  const wkTag = isEnglishLocale() ? 'Wk' : '周';
+  const defaultPoolName = isEnglishLocale() ? 'Active Pool' : '目前池';
+  const wkTag = isEnglishLocale() ? 'Wk' : '週';
 
   if (activePool && Number.isFinite(Number(activePool.remainingPct))) {
     candidates.push({
@@ -70,7 +70,7 @@ export function resolveQuotaCapsuleSummary(quotas) {
   if (!candidates.length && weekly && Number.isFinite(Number(weekly.remainingPct))) {
     candidates.push({
       pct: Number(weekly.remainingPct),
-      label: weekly.poolFamily || (isEnglishLocale() ? 'Weekly' : '周限额'),
+      label: weekly.poolFamily || (isEnglishLocale() ? 'Weekly' : '週限額'),
       windowTag: wkTag,
     });
   }

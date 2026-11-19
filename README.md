@@ -13,7 +13,7 @@ Local usage, speed, context, and quota monitor for Google Antigravity 2.0, Antig
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0%20npm%20packages-10b981?style=flat-square)](#local-development)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-6366f1?style=flat-square)](#client-support)
 
-English · [简体中文](README.zh-CN.md)
+English · [繁體中文](README.zh-TW.md) · [简体中文](README.zh-CN.md)
 
 [Features](#features) · [Screenshots](#screenshots) · [Client Support](#client-support) · [Installation](#installation) · [Usage](#usage) · [Development](#local-development)
 

@@ -464,11 +464,11 @@ test('BUG-09, BUG-14 & BUG-15: SemVer 2.0 prerelease/build ordering, future-only
   assert.equal(claudePool.remainingPct, 40);
   assert.equal(claudePool.weeklyRemainingPct, 80);
 
-  assert.equal(formatCountdown(new Date(nowMs + 30_000).toISOString(), nowMs), '<1分钟后重置');
-  assert.equal(formatCountdown('1969-12-31T23:59:59Z', nowMs), '未知重置时间');
+  assert.equal(formatCountdown(new Date(nowMs + 30_000).toISOString(), nowMs), '<1分鐘後重置');
+  assert.equal(formatCountdown('1969-12-31T23:59:59Z', nowMs), '未知重置時間');
   assert.equal(formatUsd(0.0004, { precise: true }), '<$0.001');
   assert.equal(formatUsd(12.34, { unpricedCalls: 1, compactPending: true }), '$12.34');
-  assert.equal(speedReasonText('short_timing'), '耗时过短 (<0.5s)');
+  assert.equal(speedReasonText('short_timing'), '耗時過短 (<0.5s)');
 });
 
 test('BUG-17 & CANCEL-06: extractContextBreakdown classifies messagePrompts when children are empty and blocks post-compaction carryover', () => {
@@ -706,14 +706,14 @@ test('Compaction liveActivity: detects in-progress & completed CHECKPOINT over p
 
   const pCompacting = await h.buildTelemetryPayloadInternal(convId);
   assert.equal(pCompacting.activeConversation.liveActivity.phase, 'compacting');
-  assert.equal(pCompacting.activeConversation.liveActivity.label, '上下文压缩');
+  assert.equal(pCompacting.activeConversation.liveActivity.label, '上下文壓縮');
   assert.equal(
     pCompacting.activeConversation.liveActivity.startedAtMs,
     Date.parse('2026-11-11T02:18:40Z'),
     'uses previous tool completion timestamp when in-progress CHECKPOINT lacks createdAt'
   );
   assert.equal(pCompacting.runningConversations[0].mainActivity.phase, 'compacting');
-  assert.equal(pCompacting.runningConversations[0].mainActivity.label, '上下文压缩');
+  assert.equal(pCompacting.runningConversations[0].mainActivity.label, '上下文壓縮');
 
   // Phase 2: CHECKPOINT finishes (status=DONE in both RPC & transcript.jsonl) while resuming before next PLANNER_RESPONSE
   h.state.trajectories[convId] = {
@@ -752,8 +752,8 @@ test('Compaction liveActivity: detects in-progress & completed CHECKPOINT over p
 
   const pResuming = await h.buildTelemetryPayloadInternal(convId);
   assert.equal(pResuming.activeConversation.liveActivity.phase, 'compacting');
-  assert.equal(pResuming.activeConversation.liveActivity.label, '上下文压缩');
-  assert.equal(pResuming.activeConversation.liveActivity.detail, '已完成压缩，正在恢复推理');
+  assert.equal(pResuming.activeConversation.liveActivity.label, '上下文壓縮');
+  assert.equal(pResuming.activeConversation.liveActivity.detail, '已完成壓縮，正在恢復推理');
   assert.equal(
     pResuming.activeConversation.liveActivity.startedAtMs,
     Date.parse('2026-11-11T02:19:33Z')
@@ -764,7 +764,7 @@ test('Compaction liveActivity: detects in-progress & completed CHECKPOINT over p
   h.state.trajectories[convId] = new Error('temporary RPC timeout');
   const pTranscriptOnly = await h.buildTelemetryPayloadInternal(convId, true);
   assert.equal(pTranscriptOnly.activeConversation.liveActivity.phase, 'compacting');
-  assert.equal(pTranscriptOnly.activeConversation.liveActivity.label, '上下文压缩');
+  assert.equal(pTranscriptOnly.activeConversation.liveActivity.label, '上下文壓縮');
 });
 
 test('panel typography scales all view/table/chart CSS rules via --fs-* tokens without hardcoded px sizes', () => {
@@ -1073,7 +1073,7 @@ test('P0 audit fixes: main/bridge-daemon import isolation, standalone lsAddr, du
     ],
     true
   );
-  assert.equal(findAct?.label, '查找文件');
+  assert.equal(findAct?.label, '尋找檔案');
 
   // 4. Preview i18n ('live.generating'), stepColumns maxItems: 14, SQLite busy helper reuse, and pure header render
   const { setI18nLanguage } = await import('../src/i18n/index.js');

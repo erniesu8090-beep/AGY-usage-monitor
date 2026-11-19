@@ -264,7 +264,7 @@ export async function performPluginUpdate({ isAuto = false } = {}) {
       if (hasGit) {
         // 0. 开发仓库（非 ~/.gemini/config/plugins/）一律禁止后台自动更新
         if (isAuto && !isInstalledPluginDir) {
-          const msg = '当前处于本地开发仓库，已自动禁用后台静默更新';
+          const msg = '目前處於本機開發倉庫，已自動停用背景靜默更新';
           const result = {
             ok: false,
             skipped: true,
@@ -284,8 +284,8 @@ export async function performPluginUpdate({ isAuto = false } = {}) {
         const isDirty = statusRes.stdout.trim().length > 0;
         if (isDirty) {
           const msg = isInstalledPluginDir
-            ? '本地文件有改动，已跳过覆盖更新'
-            : '开发目录有未提交修改，已跳过更新';
+            ? '本機檔案有改動，已略過覆蓋更新'
+            : '開發目錄有未提交修改，已略過更新';
           pluginUpdateState.lastError = isAuto ? null : msg;
           pluginUpdateState.lastResult = {
             ok: false,
@@ -314,7 +314,7 @@ export async function performPluginUpdate({ isAuto = false } = {}) {
           currentBranch === 'main' ||
           /^release\/[0-9A-Za-z._-]+$/.test(currentBranch);
         if (!isAllowedBranch) {
-          const msg = `当前分支为 ${currentBranch}，已跳过更新`;
+          const msg = `目前分支為 ${currentBranch}，已略過更新`;
           pluginUpdateState.lastError = isAuto ? null : msg;
           pluginUpdateState.lastResult = {
             ok: false,
@@ -380,7 +380,7 @@ export async function performPluginUpdate({ isAuto = false } = {}) {
 
         // 5. 强制版本门禁：远端版本无法确认或不高于当前版本时，严禁执行 git pull 降级/覆盖
         if (!remoteVersion || compareSemver(remoteVersion, previousVersion) <= 0) {
-          const msg = `当前已是最新版本 (v${previousVersion})`;
+          const msg = `目前已是最新版本 (v${previousVersion})`;
           const result = {
             ok: false,
             skipped: true,
@@ -408,7 +408,7 @@ export async function performPluginUpdate({ isAuto = false } = {}) {
             remoteRef,
           ]);
         } catch {
-          const msg = '本地分支存在未推送提交，已跳过更新';
+          const msg = '本機分支存在未推送提交，已略過更新';
           pluginUpdateState.lastError = isAuto ? null : msg;
           pluginUpdateState.lastResult = {
             ok: false,
@@ -434,7 +434,7 @@ export async function performPluginUpdate({ isAuto = false } = {}) {
           previousVersion,
           currentVersion,
           restarting: true,
-          message: `已升级至 v${currentVersion}，正在重启面板…`,
+          message: `已升級至 v${currentVersion}，正在重啟面板…`,
           updatedAtMs: Date.now(),
         };
         pluginUpdateState.lastResult = result;
@@ -445,7 +445,7 @@ export async function performPluginUpdate({ isAuto = false } = {}) {
       // Release ZIP 归档更新通道（适用于无 .git 的压缩包安装目录）
       const targetVersion = cloudSyncState.latestPluginVersion || '';
       if (!isValidSemver(targetVersion) || compareSemver(targetVersion, previousVersion) <= 0) {
-        const msg = `当前已是最新版本 (v${previousVersion})`;
+        const msg = `目前已是最新版本 (v${previousVersion})`;
         const result = {
           ok: false,
           skipped: true,
@@ -480,12 +480,12 @@ export async function performPluginUpdate({ isAuto = false } = {}) {
             signal: AbortSignal.timeout(25000),
           });
           if (!res.ok) {
-            throw new Error(`下载更新包失败 (HTTP ${res.status})`);
+            throw new Error(`下載更新包失敗 (HTTP ${res.status})`);
           }
           const buf = Buffer.from(await res.arrayBuffer());
           // 校验 ZIP 文件头魔数 ('PK') 与最小合理体积
           if (buf.length < 1024 || buf[0] !== 0x50 || buf[1] !== 0x4b) {
-            throw new Error('下载的更新包格式校验未通过');
+            throw new Error('下載的更新包格式校驗未通過');
           }
           writeFileSync(zipFile, buf);
 
@@ -508,7 +508,7 @@ export async function performPluginUpdate({ isAuto = false } = {}) {
             !existsSync(join(extractedRoot, 'sidecars', 'panel', 'styles.css')) ||
             !existsSync(join(extractedRoot, 'sidecars', 'panel', 'index.html'))
           ) {
-            throw new Error('更新包缺少核心插件文件');
+            throw new Error('更新包缺少核心外掛檔案');
           }
 
           const extractedManifest = loadJson(join(extractedRoot, 'plugin.json'), null);
@@ -521,7 +521,7 @@ export async function performPluginUpdate({ isAuto = false } = {}) {
             : '';
           if (!extractedVer || compareSemver(extractedVer, previousVersion) <= 0) {
             throw new Error(
-              `下载包版本 (v${extractedVer || '未知'}) 不高于当前已安装版本 (v${previousVersion})，已拒绝降级覆盖`
+              `下載包版本 (v${extractedVer || '未知'}) 不高於目前安裝版本 (v${previousVersion})，已拒絕降級覆蓋`
             );
           }
           if (
@@ -529,7 +529,7 @@ export async function performPluginUpdate({ isAuto = false } = {}) {
             compareSemver(targetVersion, extractedVer) > 0
           ) {
             throw new Error(
-              `Release 压缩包版本 (v${extractedVer}) 尚未同步至 v${targetVersion}，切换至主干归档源`
+              `Release 壓縮檔版本 (v${extractedVer}) 尚未同步至 v${targetVersion}，切換至主幹封存來源`
             );
           }
 
@@ -574,7 +574,7 @@ export async function performPluginUpdate({ isAuto = false } = {}) {
             previousVersion,
             currentVersion,
             restarting: true,
-            message: `已下载并更新至 v${currentVersion}，正在重载面板…`,
+            message: `已下載並更新至 v${currentVersion}，正在重載面板…`,
             updatedAtMs: Date.now(),
           };
           pluginUpdateState.lastResult = result;
@@ -589,9 +589,9 @@ export async function performPluginUpdate({ isAuto = false } = {}) {
           }
         }
       }
-      throw lastZipErr || new Error('未能下载可用的插件更新包');
+      throw lastZipErr || new Error('未能下載可用的外掛更新包');
     } catch (err) {
-      const errMsg = err?.message || '插件更新失败';
+      const errMsg = err?.message || '外掛更新失敗';
       pluginUpdateState.lastError = errMsg;
       const result = {
         ok: false,
@@ -689,7 +689,7 @@ export async function syncCloudCatalog({ force = false, urls = CLOUD_CATALOG_URL
           lastErr = err;
         }
       }
-      cloudSyncState.lastError = lastErr?.message || '云端价格表同步失败';
+      cloudSyncState.lastError = lastErr?.message || '雲端價格表同步失敗';
       return getCloudStatus();
     } finally {
       cloudSyncState.isSyncing = false;

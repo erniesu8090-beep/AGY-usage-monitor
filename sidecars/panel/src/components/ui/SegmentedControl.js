@@ -12,7 +12,7 @@ export const SegmentedControl = defineComponent({
     const rootEl = h('div', {
       className: 'segmented',
       role: 'group',
-      'aria-label': getProps().ariaLabel || '分段切换器',
+      'aria-label': getProps().ariaLabel || '分段切換器',
     });
 
     function syncSegments() {

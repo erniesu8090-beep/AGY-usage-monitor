@@ -41,9 +41,9 @@ test('missing checkpoint identity infers model and pricing from neighbouring ste
   const cp = p.activeConversation.recentSteps.find(s => s.stepIndex === 211);
   assert.equal(cp.modelKey, FLASH);
   assert.equal(cp.modelSource, 'inferred_compaction');
-  assert.equal(cp.modelShort, 'flash-3.8-high·压缩');
+  assert.equal(cp.modelShort, 'flash-3.8-high·壓縮');
   assert.equal(cp.responseModel, 'gemini-3.8-flash-n');
-  assert.equal(cp.modelUpstream, 'gemini-3.8-flash-n·压缩');
+  assert.equal(cp.modelUpstream, 'gemini-3.8-flash-n·壓縮');
   assert.equal(cp.costUsd, 0.0052);
   assert.equal(cp.inCostUsd, 0.0008);
   assert.equal(cp.contextTokens, 11000);
@@ -59,7 +59,7 @@ test('isolated checkpoint without known neighbours stays unknown; its token tota
   const rows = [step(211, undefined, true)];
   const p = await payload(rows);
   const cp = p.activeConversation.recentSteps.find(s => s.stepIndex === 211);
-  assert.equal(cp.modelKey, 'unknown'); assert.equal(cp.modelShort, '模型未知·压缩');
+  assert.equal(cp.modelKey, 'unknown'); assert.equal(cp.modelShort, '模型未知·壓縮');
   assert.equal(cp.costUsd, null); assert.equal(cp.inCostUsd, null);
   assert.equal(cp.contextTokens, 11000); assert.equal(cp.tokPerSec, 100);
   assert.equal(p.activeConversation.speedSummary.sampleCount, 0);
@@ -74,7 +74,7 @@ test('isolated checkpoint without known neighbours stays unknown; its token tota
 test('checkpoint can explicitly use a different model; no neighbour-based overwrite', async () => {
   const p = await payload([step(209, FLASH), step(211, ARGON, true), step(212, FLASH)]);
   const cp = p.activeConversation.recentSteps.find(s => s.stepIndex === 211);
-  assert.equal(cp.modelShort, 'argon-4·压缩'); assert.equal(cp.modelSource, 'usage.model');
+  assert.equal(cp.modelShort, 'argon-4·壓縮'); assert.equal(cp.modelSource, 'usage.model');
   assert.equal(cp.costUsd, 0.0129); assert.equal(p.consumption.account.unpricedCalls, 0);
 });
 
@@ -163,7 +163,7 @@ test('old ambiguous Argon cache is persisted as unresolved while retaining moder
   assert.equal(h.state.saves.length,1,'do not rewrite identical migrated cache every poll');
   h.state.trajectories.test = {trajectory:{steps:[step(211,FLASH,true)]}};
   const restored = await h.buildTelemetryPayloadInternal('test', true);
-  assert.equal(restored.activeConversation.activeModelShort,'flash-3.8-high·压缩');
+  assert.equal(restored.activeConversation.activeModelShort,'flash-3.8-high·壓縮');
   assert.equal(restored.consumption.account.unpricedCalls,0);
 });
 
@@ -240,8 +240,8 @@ test('Orchestrator (Carbon) direct/planning and inferred compaction steps resolv
   assert.equal(s1.costUsd, 0.0129);
   assert.equal(cp.modelKey, ORCH_CARBON);
   assert.equal(cp.modelSource, 'inferred_compaction');
-  assert.equal(cp.modelShort, 'orch-carbon·压缩');
-  assert.equal(cp.modelUpstream, 'gemini-pro-orchestrator (carbon-4)·压缩');
+  assert.equal(cp.modelShort, 'orch-carbon·壓縮');
+  assert.equal(cp.modelUpstream, 'gemini-pro-orchestrator (carbon-4)·壓縮');
   assert.equal(p.activeConversation.activeModelShort, 'orch-carbon');
   assert.equal(p.activeConversation.activeModelUpstream, 'gemini-pro-orchestrator (carbon-4)');
   assert.equal(p.consumption.account.unpricedCalls, 0);
@@ -430,9 +430,9 @@ test('orchestratorIdMode defaults to compact, persists via settings action, and 
   };
   const orchWorkerCompaction = {
     modelKey: ORCH_EXEC_HYDROGEN,
-    modelShort: 'hydrogen-4·压缩',
-    modelLabel: 'Orchestrator Worker (Hydrogen) [自动压缩]',
-    modelUpstream: 'gemini-flash-worker-agy (hydrogen-4)·压缩',
+    modelShort: 'hydrogen-4·壓縮',
+    modelLabel: 'Orchestrator Worker (Hydrogen) [自動壓縮]',
+    modelUpstream: 'gemini-flash-worker-agy (hydrogen-4)·壓縮',
     responseModel: 'gemini-flash-worker-agy',
     isCompactionStep: true,
   };
@@ -454,7 +454,7 @@ test('orchestratorIdMode defaults to compact, persists via settings action, and 
     );
     assert.equal(
       resolveModelDisplayInfo(orchWorkerCompaction, { showUpstreamModel, orchestratorIdMode: 'compact' }).text,
-      'worker-agy-hydrogen·压缩'
+      'worker-agy-hydrogen·壓縮'
     );
     assert.equal(
       resolveModelDisplayInfo(orchCarbon, { showUpstreamModel, orchestratorIdMode: 'full' }).text,
@@ -466,7 +466,7 @@ test('orchestratorIdMode defaults to compact, persists via settings action, and 
     );
     assert.equal(
       resolveModelDisplayInfo(orchWorkerCompaction, { showUpstreamModel, orchestratorIdMode: 'full' }).text,
-      'gemini-flash-worker-agy (hydrogen-4)·压缩'
+      'gemini-flash-worker-agy (hydrogen-4)·壓縮'
     );
   }
 

@@ -81,7 +81,7 @@ test('Ultra user: Argon and Flash sharing Gemini Models remain a single Gemini p
   assert.equal(p.quotas.activePool.family, 'Gemini');
   assert.equal(p.quotas.activePool.weeklyRemainingPct, 8.7);
   assert.equal(p.quotas.weekly.poolFamily, 'Gemini');
-  assert.equal(p.quotas.weekly.title, '每周限额 (Gemini)');
+  assert.equal(p.quotas.weekly.title, '每週限額 (Gemini)');
 });
 
 test('Pro user Shape 1: dedicated weekly-only Argon group in RetrieveUserQuotaSummary', async () => {
@@ -170,14 +170,14 @@ test('Pro user Shape 1: dedicated weekly-only Argon group in RetrieveUserQuotaSu
   // Active Argon conversation binds to Argon pool
   assert.equal(argonPayload.quotas.activePool.family, 'Argon');
   assert.equal(argonPayload.quotas.weekly.poolFamily, 'Argon');
-  assert.equal(argonPayload.quotas.weekly.title, '每周限额 (Gemini 4 Argon)');
+  assert.equal(argonPayload.quotas.weekly.title, '每週限額 (Gemini 4 Argon)');
   assert.equal(argonPayload.quotas.weekly.remainingPct, 35);
 
   // Active Flash conversation binds to Gemini pool
   const flashPayload = await h.buildTelemetryPayloadInternal('flashConv');
   assert.equal(flashPayload.quotas.activePool.family, 'Gemini');
   assert.equal(flashPayload.quotas.weekly.poolFamily, 'Gemini');
-  assert.equal(flashPayload.quotas.weekly.title, '每周限额 (Gemini)');
+  assert.equal(flashPayload.quotas.weekly.title, '每週限額 (Gemini)');
   assert.equal(flashPayload.quotas.weekly.remainingPct, 90);
 });
 

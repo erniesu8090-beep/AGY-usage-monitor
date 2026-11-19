@@ -749,7 +749,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
               contextUsedPct: 48.4,
               mainActivity: {
                 phase: 'tool',
-                label: '执行命令',
+                label: '執行指令',
                 detail: 'rg -n ProtectedURLFilter',
                 stepProgress: '1/2',
                 startedAtMs: Date.now() - 12000,
@@ -1202,7 +1202,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     assert.equal(multiBtn.querySelector('.svg-icon'), null, 'Multi-session button has zero SVG clutter');
     assert.equal(multiBtn.classList.contains('is-running'), true);
     const multiLabelEl = multiBtn.querySelector('.wm-multi-label');
-    assert.equal(multiLabelEl.textContent, '2 运行 · 1 子');
+    assert.equal(multiLabelEl.textContent, '2 執行 · 1 子');
 
     // Verify capsule reactive text (default order: 92.4 t/s without bolt SVG, 0.85s TTFT, 50% context)
     const defaultCapSlots = capsuleHost.shadowRoot.querySelectorAll('.wm-cap-slot');
@@ -1239,7 +1239,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     const soloTaskCard = runningListEl.children[1];
     assert.equal(liveTaskCard.querySelector('.live-task-title').textContent, 'Background Security Audit');
     assert.equal(liveTaskCard.querySelector('.badge-main').hasAttribute('hidden'), false, 'Session with subagents shows 主 badge');
-    assert.equal(liveTaskCard.querySelector('.live-activity-phase').textContent, '执行命令');
+    assert.equal(liveTaskCard.querySelector('.live-activity-phase').textContent, '執行指令');
     assert.equal(liveTaskCard.querySelector('.live-sub-list').hasAttribute('hidden'), false, 'Active subagents auto-expanded');
     assert.equal(liveTaskCard.querySelector('.live-sub-role').textContent, 'Auth Researcher');
     assert.equal(soloTaskCard.querySelector('.live-task-title').textContent, 'Solo Refactor Task');
@@ -1293,7 +1293,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     assert.equal(hoverMatrix.children[3].children[1].textContent, '$0.040');
     assert.equal(hoverLegendGrid.children.length, 10, 'All 10 context legend slots pre-reserved');
     const firstLegendSlotBefore = hoverLegendGrid.children[0];
-    assert.equal(firstLegendSlotBefore.children[0].children[1].textContent, '工具结果');
+    assert.equal(firstLegendSlotBefore.children[0].children[1].textContent, '工具結果');
     assert.equal(firstLegendSlotBefore.children[1].textContent, '76.0k');
     assert.equal(hoverQuotaPools.children.length, 2, 'Default Gemini & Claude/GPT quota pools pre-reserved');
     assert.equal(hoverQuotaPools.children[0].children.length, 2, 'Zero extra vertical rows in pool item');
@@ -1301,14 +1301,14 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     const geminiHoverUsages = hoverQuotaPools.children[0].querySelectorAll('.quota-win-usage');
     assert.equal(geminiHoverTitles[0].textContent, '5h (Gemini)');
     assert.equal(geminiHoverUsages[0].textContent, '· 3.1M ($0.92)');
-    assert.equal(geminiHoverTitles[1].textContent, '周限 (Gemini)');
+    assert.equal(geminiHoverTitles[1].textContent, '週限 (Gemini)');
     assert.equal(geminiHoverUsages[1].textContent, '· 18.2M ($5.40)');
     const claudeHoverUsages = hoverQuotaPools.children[1].querySelectorAll('.quota-win-usage');
     assert.equal(claudeHoverUsages[0].textContent, '· 0 ($0.00)');
     assert.equal(claudeHoverUsages[1].textContent, '· 7.3M ($3.82)');
     const hoverFootSpans = hoverTipEl.querySelector('.wm-hover-quota-foot').children;
-    assert.equal(hoverFootSpans[0].textContent, '周期累计: 25.5M ($9.22)');
-    assert.equal(hoverFootSpans[1].textContent, '周期调用: 160 次');
+    assert.equal(hoverFootSpans[0].textContent, '週期累計: 25.5M ($9.22)');
+    assert.equal(hoverFootSpans[1].textContent, '週期呼叫: 160 次');
 
     // Verify clicking multi-session button pins open multi-session panel, and clicking capsule switches to 4-tab panel
     multiBtn.dispatchEvent({ type: 'click', stopPropagation() {} });
@@ -1352,7 +1352,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     const allPanes = popoverEl.querySelectorAll('.view-pane');
     const settingsRoot = popoverEl.querySelector('.settings-view-root');
     const subNavBtns = settingsRoot.querySelector('.settings-subnav-bar').querySelectorAll('.seg-btn');
-    assert.deepEqual(subNavBtns.map((button) => button.textContent), ['常规', '结构', '其他']);
+    assert.deepEqual(subNavBtns.map((button) => button.textContent), ['一般', '結構', '其他']);
     assert.match(
       stylesCss,
       /\.settings-subnav-bar\s+\.segmented\s*\{[^}]*grid-auto-flow:\s*column;[^}]*grid-auto-columns:\s*minmax\(0,\s*1fr\);/,
@@ -1372,7 +1372,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     const langBtns = generalSegControls[0].querySelectorAll('.seg-btn');
     const fontScaleBtns = generalSegControls[1].querySelectorAll('.seg-btn');
     assert.equal(langBtns.length, 3, 'Language switch has 简体中文 / English / 跟随宿主');
-    assert.equal(langBtns[0].textContent, '简体中文');
+    assert.equal(langBtns[0].textContent, '繁體中文');
     assert.equal(langBtns[0].classList.contains('is-active'), true, 'Default language is zh-CN');
     const generalSelects = generalPane.querySelectorAll('.custom-select');
     assert.equal(generalSelects.length, 1, 'General tab has Update Mode select');
@@ -1425,8 +1425,8 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     langBtns[0].dispatchEvent({ type: 'click', stopPropagation() {} });
     await new Promise((r) => setTimeout(r, 30));
     assert.equal(mockSettings.language, 'zh-CN');
-    assert.equal(pillTabs[0].querySelector('.pill-tab-label').textContent, '实时监控');
-    assert.equal(subNavBtns[0].textContent, '常规');
+    assert.equal(pillTabs[0].querySelector('.pill-tab-label').textContent, '即時監控');
+    assert.equal(subNavBtns[0].textContent, '一般');
 
     // Verify 3-tier update mode select (manual default -> off hides topbar/hover prompts -> auto -> manual)
     const topbarUpdateBtn = capsuleHost.shadowRoot.querySelector('.wm-update-btn');
@@ -1450,21 +1450,21 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     );
     assert.equal(
       hoverUpdateBar.querySelector('.wm-hover-update-left').children[1].textContent,
-      '发现新版本 v1.5.0'
+      '發現新版本 v1.5.0'
     );
     assert.equal(
       hoverUpdateBar.querySelector('.wm-hover-update-hint').textContent,
-      '点击顶栏 v1.5.0 即可更新'
+      '點擊頂欄 v1.5.0 即可更新'
     );
     assert.equal(headerUpdateBtn.hasAttribute('hidden'), false);
 
-    assert.equal(updateModeSelectEl.querySelector('.select-label').textContent, '仅提示新版本，手动更新');
+    assert.equal(updateModeSelectEl.querySelector('.select-label').textContent, '僅提示新版本，手動更新');
     updateModeSelectEl.querySelector('.select-trigger').dispatchEvent({ type: 'click', stopPropagation() {} });
     const updateOpts = updateModeSelectEl.querySelectorAll('.select-option');
     assert.equal(updateOpts.length, 3, '3 update modes rendered (manual, auto, off)');
-    assert.equal(updateOpts[0].querySelector('.select-option-text').textContent, '仅提示新版本，手动更新');
-    assert.equal(updateOpts[1].querySelector('.select-option-text').textContent, '自动更新');
-    assert.equal(updateOpts[2].querySelector('.select-option-text').textContent, '关闭更新');
+    assert.equal(updateOpts[0].querySelector('.select-option-text').textContent, '僅提示新版本，手動更新');
+    assert.equal(updateOpts[1].querySelector('.select-option-text').textContent, '自動更新');
+    assert.equal(updateOpts[2].querySelector('.select-option-text').textContent, '關閉更新');
 
     updateOpts[2].dispatchEvent({ type: 'click', stopPropagation() {} });
     await new Promise((r) => setTimeout(r, 30));
@@ -1496,7 +1496,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     const thirdNavBtns = thirdNavBar.querySelectorAll('.structure-thirdnav-btn');
     assert.deepEqual(
       thirdNavBtns.map((btn) => btn.querySelector('.structure-thirdnav-label').textContent),
-      ['挂载胶囊', '鼠标悬浮窗', '实时监控布局', '调用明细字段'],
+      ['掛載膠囊', '滑鼠懸浮窗', '即時監控版面', '呼叫明細欄位'],
       '3rd-level menu renders 4 structure sub-tabs'
     );
     assert.equal(thirdNavBtns[0].classList.contains('is-active'), true, 'First 3rd-level tab active by default');
@@ -1524,13 +1524,13 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     const mountSelectEl = sec0.querySelectorAll('.custom-select')[0];
 
     // Toggle windowMountSelect: dual -> composer -> sidebar -> dual (updating both live host & preview bar)
-    assert.ok(mountSelectEl.querySelector('.select-label').textContent.includes('顶部栏 + 侧边栏'));
+    assert.ok(mountSelectEl.querySelector('.select-label').textContent.includes('頂部欄 + 側邊欄'));
     mountSelectEl.querySelector('.select-trigger').dispatchEvent({ type: 'click', stopPropagation() {} });
     mountSelectEl.querySelectorAll('.select-option')[1].dispatchEvent({ type: 'click', stopPropagation() {} });
     await new Promise((r) => setTimeout(r, 30));
     assert.equal(mockSettings.windowMountMode, 'composer', 'windowMountMode persisted as composer');
     assert.equal(mockSettings.enableWindowOverlay, true, 'enableWindowOverlay stays true in composer mode');
-    assert.ok(mountSelectEl.querySelector('.select-label').textContent.includes('输入框挂载'), 'UI reflects composer mode');
+    assert.ok(mountSelectEl.querySelector('.select-label').textContent.includes('輸入框掛載'), 'UI reflects composer mode');
     assert.equal(previewCapsuleBar.getAttribute('data-mount-mode'), 'composer', 'Preview bar switches to composer mode');
     assert.equal(previewCapsuleBar.classList.contains('is-composer'), true);
 
@@ -1539,7 +1539,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     await new Promise((r) => setTimeout(r, 30));
     assert.equal(mockSettings.windowMountMode, 'sidebar', 'windowMountMode persisted as sidebar');
     assert.equal(mockSettings.enableWindowOverlay, false, 'enableWindowOverlay persisted as false');
-    assert.ok(mountSelectEl.querySelector('.select-label').textContent.includes('仅侧边栏'), 'UI reflects sidebar mode');
+    assert.ok(mountSelectEl.querySelector('.select-label').textContent.includes('僅側邊欄'), 'UI reflects sidebar mode');
     assert.equal(previewCapsuleBar.classList.contains('is-sidebar-only'), true);
     assert.equal(sec0.querySelector('.preview-sidebar-note').hasAttribute('hidden'), false, 'Sidebar-only preview hint shown');
 
@@ -1611,9 +1611,9 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     capRowSelects[0].querySelectorAll('.select-option')[9].dispatchEvent({ type: 'click', stopPropagation() {} });
     await new Promise((r) => setTimeout(r, 30));
     assert.equal(capSlots[0].getAttribute('data-metric'), 'gemini_5h');
-    assert.equal(capSlots[0].children[0].textContent, '余 44%');
+    assert.equal(capSlots[0].children[0].textContent, '餘 44%');
     assert.equal(previewCapsuleSlots[0].getAttribute('data-metric'), 'gemini_5h', 'Preview slot 0 mirrors gemini_5h');
-    assert.equal(previewCapsuleSlots[0].children[0].textContent, '余 64%', 'Preview slot 0 renders simulated gemini_5h');
+    assert.equal(previewCapsuleSlots[0].children[0].textContent, '餘 64%', 'Preview slot 0 renders simulated gemini_5h');
     assert.equal(capSlots[1].getAttribute('data-metric'), 'ttft');
     assert.equal(capSlots[1].children[0].textContent, '0.85s');
 
@@ -1630,7 +1630,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     await new Promise((r) => setTimeout(r, 30));
     assert.deepEqual(mockSettings.topbarCapsuleSlots, ['ttft', 'gemini_5h', 'cost']);
     assert.equal(capSlots[0].children[0].textContent, '0.85s');
-    assert.equal(capSlots[1].children[0].textContent, '余 44%');
+    assert.equal(capSlots[1].children[0].textContent, '餘 44%');
 
     // Mouse drag-and-drop reorder: drag Row 0 ('ttft') down below Row 2 ('cost') -> ['gemini_5h', 'cost', 'ttft']
     const capSlotListEl = capSlotWrap.querySelector('.editable-slot-list');
@@ -1782,7 +1782,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     assert.deepEqual(mockSettings.overviewMetrics, ['tps', 'ttft']);
     assert.equal(overviewPreviewHostEl.children[0].getAttribute('data-cols'), '2', 'Preview MetricMatrixWidget adapts to 2 columns');
     assert.ok(
-      overviewPreviewHostEl.children[1].querySelector('.panel-title').children[1].textContent.includes('可用额度'),
+      overviewPreviewHostEl.children[1].querySelector('.panel-title').children[1].textContent.includes('可用額度'),
       'Preview QuotaPoolsWidget moved above ContextWindowWidget'
     );
     pillTabs[0].dispatchEvent({ type: 'click', stopPropagation() {} });
@@ -1790,7 +1790,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     const overviewHostEl = allPanes[0].querySelector('.overview-modules-host');
     assert.equal(overviewHostEl.children[0].getAttribute('data-cols'), '2', 'MetricMatrixWidget adapts to 2 columns');
     assert.ok(
-      overviewHostEl.children[1].querySelector('.panel-title').children[1].textContent.includes('可用额度'),
+      overviewHostEl.children[1].querySelector('.panel-title').children[1].textContent.includes('可用額度'),
       'QuotaPoolsWidget moved above ContextWindowWidget in LiveOverviewView'
     );
     pillTabs[3].dispatchEvent({ type: 'click', stopPropagation() {} });
@@ -1814,9 +1814,9 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     assert.equal(previewStepTable.children[1].children.length, 4, 'Preview step table renders 4 simulated steps');
 
     const sec3SettingLabels = sec3.querySelectorAll('.form-label').map((el) => el.textContent);
-    assert.ok(sec3SettingLabels.includes('对话轮次导轨'), 'Turn rail switch rendered in 调用明细字段');
-    assert.ok(sec3SettingLabels.includes('主/子代理标识'), 'Main/Sub agent badge switch rendered in 调用明细字段');
-    assert.ok(sec3SettingLabels.includes('输出速度多色分级'), 'Speed multi-color switch rendered in 调用明细字段');
+    assert.ok(sec3SettingLabels.includes('對話輪次導軌'), 'Turn rail switch rendered in 呼叫明細欄位');
+    assert.ok(sec3SettingLabels.includes('主/子代理標識'), 'Main/Sub agent badge switch rendered in 呼叫明細欄位');
+    assert.ok(sec3SettingLabels.includes('輸出速度多色分級'), 'Speed multi-color switch rendered in 呼叫明細欄位');
     const sec3SegControls = sec3.querySelectorAll('.segmented');
     assert.equal(sec3SegControls.length, 3, 'Three independent switches rendered in 调用明细字段');
     const getRowSpeedClasses = (tableEl) =>
@@ -1837,7 +1837,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     previewFirstTd.onmouseenter?.({ target: previewFirstTd });
     const previewTurnTip = sec3.querySelector('.turn-prompt-tip');
     assert.equal(previewTurnTip.hasAttribute('hidden'), false, 'Hovering first cell in preview reveals turn prompt tooltip');
-    assert.ok(previewTurnTip.textContent.includes('并发刷新令牌'), 'Preview turn tooltip displays realistic engineering prompt');
+    assert.ok(previewTurnTip.textContent.includes('並行重新整理權杖'), 'Preview turn tooltip displays realistic engineering prompt');
     previewFirstTd.onmouseleave?.();
 
     sec3SegControls[1].querySelectorAll('.seg-btn')[1].dispatchEvent({ type: 'click', stopPropagation() {} });
@@ -1909,7 +1909,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     const orchestratorIdSelectEl = otherSelects[1];
 
     // Toggle stepModelSelect: short -> upstream -> upstream_compact -> short
-    assert.ok(modelFormatSelectEl.querySelector('.select-label').textContent.includes('精简代号'));
+    assert.ok(modelFormatSelectEl.querySelector('.select-label').textContent.includes('精簡代號'));
     modelFormatSelectEl.querySelector('.select-trigger').dispatchEvent({ type: 'click', stopPropagation() {} });
     modelFormatSelectEl.querySelectorAll('.select-option')[1].dispatchEvent({ type: 'click', stopPropagation() {} });
     await new Promise((r) => setTimeout(r, 30));
@@ -1921,7 +1921,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     await new Promise((r) => setTimeout(r, 30));
     assert.equal(mockSettings.modelDisplayMode, 'upstream_compact');
     assert.equal(mockSettings.showUpstreamModel, true);
-    assert.ok(modelFormatSelectEl.querySelector('.select-label').textContent.includes('去前缀原始 ID'));
+    assert.ok(modelFormatSelectEl.querySelector('.select-label').textContent.includes('去前綴原始 ID'));
     modelFormatSelectEl.querySelector('.select-trigger').dispatchEvent({ type: 'click', stopPropagation() {} });
     modelFormatSelectEl.querySelectorAll('.select-option')[0].dispatchEvent({ type: 'click', stopPropagation() {} });
     await new Promise((r) => setTimeout(r, 30));
@@ -1929,7 +1929,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     assert.equal(mockSettings.showUpstreamModel, false);
 
     // Toggle orchestratorIdSelect: compact -> full
-    assert.ok(orchestratorIdSelectEl.querySelector('.select-label').textContent.includes('精简代号'));
+    assert.ok(orchestratorIdSelectEl.querySelector('.select-label').textContent.includes('精簡代號'));
     orchestratorIdSelectEl.querySelector('.select-trigger').dispatchEvent({ type: 'click', stopPropagation() {} });
     orchestratorIdSelectEl.querySelectorAll('.select-option')[1].dispatchEvent({ type: 'click', stopPropagation() {} });
     await new Promise((r) => setTimeout(r, 30));
@@ -1960,17 +1960,17 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
 
     assert.equal(contextWindow.parentNode.hasAttribute('hidden'), true);
     contextModel.querySelector('.select-trigger').dispatchEvent({ type: 'click', stopPropagation() {} });
-    assert.match(contextModel.querySelectorAll('.select-option')[1].querySelector('.select-option-meta').textContent, /默认.*256,000/);
+    assert.match(contextModel.querySelectorAll('.select-option')[1].querySelector('.select-option-meta').textContent, /預設.*256,000/);
     contextModel.querySelector('.select-trigger').dispatchEvent({ type: 'click', stopPropagation() {} });
     selectOption(contextModel, 1);
     selectOption(contextWindow, 1);
     await new Promise((r) => setTimeout(r, 30));
     assert.deepEqual(mockSettings.modelContextWindows, { 'model:gemini-4-argon': '512000' });
     contextModel.querySelector('.select-trigger').dispatchEvent({ type: 'click', stopPropagation() {} });
-    assert.match(contextModel.querySelectorAll('.select-option')[1].querySelector('.select-option-meta').textContent, /512,000.*已设置/);
+    assert.match(contextModel.querySelectorAll('.select-option')[1].querySelector('.select-option-meta').textContent, /512,000.*已設定/);
     contextModel.querySelector('.select-trigger').dispatchEvent({ type: 'click', stopPropagation() {} });
     selectOption(contextModel, 2);
-    assert.equal(contextWindow.querySelector('.select-label').textContent, '跟随宿主设置');
+    assert.equal(contextWindow.querySelector('.select-label').textContent, '跟隨主程式設定');
     selectOption(contextWindow, 1);
     await new Promise((r) => setTimeout(r, 30));
     selectOption(contextModel, 1);
@@ -2067,7 +2067,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     );
     assert.match(
       heatmapStageEl.querySelector('.trend-hm-summary').textContent,
-      /^活跃 40\/120 天 · 峰值 /
+      /^活躍 40\/120 天 · 峰值 /
     );
 
     // Hovering a heatmap day square populates shared tooltip and docks away from hovered row
@@ -2170,7 +2170,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     // Verify '按步查看' multi-select model filter (visible when >1 model) & '总汇总' sub-tab rename
     const stepsHeaderSegBtns = stepsPane.querySelector('.steps-header-controls').querySelectorAll('.seg-btn');
     assert.equal(stepsHeaderSegBtns[0].textContent, '按步查看 (2)');
-    assert.equal(stepsHeaderSegBtns[1].textContent, '总汇总', 'Second sub-tab renamed cleanly to 总汇总');
+    assert.equal(stepsHeaderSegBtns[1].textContent, '總彙總', 'Second sub-tab renamed cleanly to 总汇总');
 
     const stepsModelSelectEl = stepsPane.querySelector('.steps-inline-model-select');
     assert.ok(stepsModelSelectEl, 'Inline model multi-select mounted in 按步查看 header');
@@ -2235,17 +2235,17 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     const lineSegBtns = lineCard.querySelectorAll('.seg-btn');
     assert.deepEqual(
       lineSegBtns.map((b) => b.textContent),
-      ['总Token', '上下文', 'TPS', '首字', '费用']
+      ['總Token', '上下文', 'TPS', '首字', '費用']
     );
-    assert.match(lineCard.querySelector('.cons-badge').textContent, /^累计 155\.5k$/);
+    assert.match(lineCard.querySelector('.cons-badge').textContent, /^累計 155\.5k$/);
     lineSegBtns[1].dispatchEvent({ type: 'click', stopPropagation() {} }); // 上下文
-    assert.match(lineCard.querySelector('.cons-badge').textContent, /^当前 37\.8k$/);
+    assert.match(lineCard.querySelector('.cons-badge').textContent, /^目前 37\.8k$/);
     lineSegBtns[2].dispatchEvent({ type: 'click', stopPropagation() {} }); // TPS
     assert.match(lineCard.querySelector('.cons-badge').textContent, /^均值 72\.3 tok\/s$/);
     lineSegBtns[3].dispatchEvent({ type: 'click', stopPropagation() {} }); // 首字
     assert.match(lineCard.querySelector('.cons-badge').textContent, /^均值 10\.2s$/);
     lineSegBtns[4].dispatchEvent({ type: 'click', stopPropagation() {} }); // 费用
-    assert.match(lineCard.querySelector('.cons-badge').textContent, /^累计 \$0\.046$/);
+    assert.match(lineCard.querySelector('.cons-badge').textContent, /^累計 \$0\.046$/);
 
     // Verify ModelFitChart defaults to current calling model ('gemini-4-hydrogen') on view entry
     const fitModelSelectEl = fitCard.querySelector('.sstep-fit-model-select');
@@ -2259,7 +2259,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     const fitSegBtns = fitCard.querySelectorAll('.seg-btn');
     assert.deepEqual(
       fitSegBtns.map((b) => b.textContent),
-      ['TPS', '首字', '缓存', '费用']
+      ['TPS', '首字', '快取', '費用']
     );
 
     // Verify minimalist model summary cards (.smodel-card)
@@ -2268,8 +2268,8 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     assert.equal(smodelCards[0].classList.contains('is-fit-active'), true);
     assert.equal(smodelCards[0].querySelector('.smodel-name').textContent, 'gemini-4-hydrogen');
     assert.equal(smodelCards[0].querySelector('.smodel-calls-pill').textContent, '1次 · 50%');
-    assert.match(smodelCards[0].querySelector('.smodel-perf').textContent, /均速 92\.3 tok\/s · 首字 5\.6s · 缓存 93\.3%/);
-    assert.match(smodelCards[0].querySelector('.smodel-split').textContent, /入 2\.5k · 缓 34\.6k · 思 420 · 正 265/);
+    assert.match(smodelCards[0].querySelector('.smodel-perf').textContent, /均速 92\.3 tok\/s · 首字 5\.6s · 快取 93\.3%/);
+    assert.match(smodelCards[0].querySelector('.smodel-split').textContent, /入 2\.5k · 緩 34\.6k · 思 420 · 正 265/);
 
     // Simulate live telemetry poll where a subagent spawns on 'Gemini 3 Flash' (changing activeModelLabel)
     // while the user remains inside 总汇总 -> fit model MUST NOT jump!
@@ -2297,7 +2297,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     }
     assert.equal(
       lineModelSelectEl.querySelector('.select-label').textContent,
-      '已选 3 模型',
+      '已選 3 模型',
       'Checking all 3 models in SessionLineChart stays in 已选 3 模型 multi-compare mode'
     );
     assert.equal(
@@ -2330,8 +2330,8 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     hydroFitOpt.dispatchEvent({ type: 'click', stopPropagation() {} });
     assert.equal(
       fitModelSelectEl.querySelector('.select-label').textContent,
-      '已选 2 模型',
-      'Checking two models keeps dropdown open and displays 已选 2 模型'
+      '已選 2 模型',
+      'Checking two models keeps dropdown open and displays 已選 2 模型'
     );
     assert.equal(
       fitCard.querySelector('.sstep-multi-curve-group').querySelectorAll('.sstep-fit-line').length,
@@ -3293,7 +3293,7 @@ test('Antigravity IDE iframe route association, LS process discovery, and 0-tool
 
   // 4. End-to-end child process stdio framing & clean shutdown on stdin EOF
   const mcpEntryPath = path.resolve(
-    path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')),
+    path.dirname(decodeURIComponent(new URL(import.meta.url).pathname).replace(/^\/([A-Za-z]:)/, '$1')),
     '../mcp-entry.mjs'
   );
   const child = spawn(process.execPath, [mcpEntryPath], {
@@ -4052,7 +4052,7 @@ test('Step table semantic tone classes (speed/cache/ttft/cost) and domain-aligne
     hasSubagents: true,
   });
   assert.equal(stepCostCell.valueText, '$0.056');
-  assert.equal(stepCostCell.subText, '累计 $46.90', 'No unrelated cache % inside 本次费用');
+  assert.equal(stepCostCell.subText, '累計 $46.90', 'No unrelated cache % inside 本次费用');
   assert.equal(stepCostCell.subClass, 'cell-sub', 'Neutral subtext color instead of green accent-ok');
 
   const sessCostCell = resolveOverviewMetricCell('session_cost', {
@@ -4085,8 +4085,8 @@ test('Step table semantic tone classes (speed/cache/ttft/cost) and domain-aligne
     active: mockActive,
     quotas: mockQuotas,
   });
-  assert.equal(quotaCell.valueText, '余 42%');
-  assert.equal(quotaCell.subText, 'Carbon 5h · 周 85%', 'Identifies pool/window without repeating 余 42%');
+  assert.equal(quotaCell.valueText, '餘 42%');
+  assert.equal(quotaCell.subText, 'Carbon 5h · 週 85%', 'Identifies pool/window without repeating 余 42%');
 
   const avgTpsCell = resolveOverviewMetricCell('avg_tps', { active: mockActive });
   assert.equal(avgTpsCell.valueClass, 'cell-value tone-info', 'avg_tps 57.3 tok/s uses same speed tone-info');
@@ -4506,9 +4506,9 @@ test('v1.5 feedback E2E: sticky bridge port/token across hot-reloads, CDP->HTTP 
         {
           stepIndex: 51,
           isCompactionStep: true,
-          modelShort: 'hydrogen-4·压缩',
-          modelLabel: 'Gemini 4 Hydrogen [自动压缩]',
-          modelUpstream: 'gemini-4-hydrogen·压缩',
+          modelShort: 'hydrogen-4·壓縮',
+          modelLabel: 'Gemini 4 Hydrogen [自動壓縮]',
+          modelUpstream: 'gemini-4-hydrogen·壓縮',
           tokPerSec: 191.3,
           ttftSec: null,
           contextTokens: 133100,
@@ -4681,8 +4681,8 @@ test('v1.5 feedback E2E: sticky bridge port/token across hot-reloads, CDP->HTTP 
     const row0Compact = bodyRows[0].querySelector('.step-model-compact');
     assert.equal(row0ModelName, '4-hydrogen', 'Strips gemini- prefix from gemini-4-hydrogen');
     assert.equal(row0Compact.hasAttribute('hidden'), false, 'Compaction badge visible as dedicated flex-shrink:0 span');
-    assert.equal(row0Compact.textContent, '·压缩', 'Compaction suffix never merged into ellipsized span');
-    assert.equal(bodyRows[0].children[1].getAttribute('title'), 'gemini-4-hydrogen·压缩', 'Hover title keeps full upstream ID');
+    assert.equal(row0Compact.textContent, '·壓縮', 'Compaction suffix never merged into ellipsized span');
+    assert.equal(bodyRows[0].children[1].getAttribute('title'), 'gemini-4-hydrogen·壓縮', 'Hover title keeps full upstream ID');
 
     assert.equal(bodyRows[1].querySelector('.step-model-name').textContent, 'sonnet-4-6', 'Strips claude- prefix');
     assert.equal(bodyRows[1].querySelector('.step-model-compact').hasAttribute('hidden'), true);
@@ -4690,12 +4690,12 @@ test('v1.5 feedback E2E: sticky bridge port/token across hot-reloads, CDP->HTTP 
 
     // Verify In / Out / Cache column & Custom Combo column ('context:in:cache')
     const ths = stepTable.querySelector('thead').querySelectorAll('th');
-    assert.equal(ths[3].textContent, '输入 / 输出 / 缓存');
-    assert.equal(ths[4].textContent, '上下文 / 输入 / 缓存');
+    assert.equal(ths[3].textContent, '輸入 / 輸出 / 快取');
+    assert.equal(ths[4].textContent, '上下文 / 輸入 / 快取');
     assert.equal(bodyRows[0].children[3].children[0].textContent, '2.5k / 2.6k / 128.0k');
     assert.equal(
       bodyRows[0].children[3].getAttribute('title'),
-      '新输入 2,500 ($0.004) · 输出 2,600 ($0.019) · 缓存读 128,000 ($0.019)'
+      '新輸入 2,500 ($0.004) · 輸出 2,600 ($0.019) · 快取讀 128,000 ($0.019)'
     );
     assert.equal(bodyRows[0].children[4].children[0].textContent, '133.1k / 2.5k / 128.0k');
 
@@ -5236,7 +5236,7 @@ test('Issue #26: Antigravity Desktop 2.33.0+ automatic shortcut/launcher provisi
     );
     assert.equal(noticeEl.hasAttribute('hidden'), false);
     assert.equal(noticeEl.classList.contains('is-restart'), true);
-    assert.match(noticeEl.textContent, /已自动补齐启动参数/);
+    assert.match(noticeEl.textContent, /已自動補齊啟動參數/);
     assert.equal(
       strTab.refs.mountBridgeNotice.refs.relaunchBtnEl.hasAttribute('hidden'),
       false
@@ -5249,7 +5249,7 @@ test('Issue #26: Antigravity Desktop 2.33.0+ automatic shortcut/launcher provisi
       fetchedUrls.some((u) => u.url.endsWith('/api/bridge/relaunch') && u.method === 'POST'),
       true
     );
-    assert.match(strTab.refs.mountBridgeNotice.refs.relaunchBtnEl.textContent, /正在重启客户端/);
+    assert.match(strTab.refs.mountBridgeNotice.refs.relaunchBtnEl.textContent, /正在重啟用戶端/);
 
     // macOS unconfigured state -> `.is-warn` with 1-click relaunch + copy button
     strTab.refs.renderSettings(
@@ -5269,7 +5269,7 @@ test('Issue #26: Antigravity Desktop 2.33.0+ automatic shortcut/launcher provisi
     strTab.refs.mountBridgeNotice.refs.copyBtnEl.dispatchEvent({ type: 'click' });
     await new Promise((r) => setTimeout(r, 0));
     assert.equal(copiedClipboardText, '--remote-debugging-port=0');
-    assert.match(strTab.refs.mountBridgeNotice.refs.copyBtnEl.textContent, /已复制/);
+    assert.match(strTab.refs.mountBridgeNotice.refs.copyBtnEl.textContent, /已複製/);
 
     // Dismissible global banner hides on dismiss click and resets once state becomes 'active'
     const globalBanner = BridgeStatusNotice({ dismissible: true });
@@ -5340,14 +5340,14 @@ test('Issue #26: Antigravity Desktop 2.33.0+ automatic shortcut/launcher provisi
       'win32'
     );
     assert.equal(ctxNoticeEl.hasAttribute('hidden'), false);
-    assert.match(ctxNoticeEl.textContent, /激活上下文覆写/);
+    assert.match(ctxNoticeEl.textContent, /啟用上下文覆寫/);
     othTab.refs.ctxModelSelect.refs.triggerBtn.dispatchEvent({
       type: 'click',
       stopPropagation() {},
     });
     assert.match(
       othTab.refs.ctxModelSelect.refs.menuEl.textContent,
-      /256,000 token · 待重启生效/
+      /256,000 token · 待重啟生效/
     );
 
     othTab.refs.renderSettings(
@@ -5360,7 +5360,7 @@ test('Issue #26: Antigravity Desktop 2.33.0+ automatic shortcut/launcher provisi
       'win32'
     );
     assert.equal(ctxNoticeEl.hasAttribute('hidden'), true);
-    assert.match(othTab.refs.ctxModelSelect.refs.menuEl.textContent, /256,000 token · 已设置/);
+    assert.match(othTab.refs.ctxModelSelect.refs.menuEl.textContent, /256,000 token · 已設定/);
 
     globalBanner.destroy();
     strTab.destroy();

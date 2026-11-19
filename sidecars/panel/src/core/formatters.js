@@ -170,7 +170,7 @@ export function stripVendorModelPrefix(rawText) {
 
 function stripCompactionMarker(rawText) {
   return String(rawText || '')
-    .replace(/(?:·(?:压缩|compact)|\[自动压缩\]|\[auto[- ]?compact\])\s*$/iu, '')
+    .replace(/(?:·(?:压缩|壓縮|compact)|\[自动压缩\]|\[自動壓縮\]|\[auto[- ]?compact\])\s*$/iu, '')
     .trim();
 }
 
@@ -245,7 +245,7 @@ export function resolveModelDisplayInfo(target, settings = {}, options = {}) {
 
   const isCompaction =
     Boolean(target.isCompactionStep) ||
-    /·(?:压缩|compact)(?=\s|$)|\[自动压缩\]/iu.test(rawCompactionText);
+    /·(?:压缩|壓縮|compact)(?=\s|$)|\[(?:自动压缩|自動壓縮)\]/iu.test(rawCompactionText);
 
   const compactionSuffix = isCompaction ? t('fmt.compactionSuffix') : '';
 
@@ -256,7 +256,7 @@ export function resolveModelDisplayInfo(target, settings = {}, options = {}) {
     );
   const isOrchSeries =
     isOrchWorker ||
-    /\bgemini-pro-orchestrator(?:-argon)?\b|\borchestrator-(?:carbon|argon)\b|\borch-(?:carbon|argon)(?:·压缩)?(?=\s|$)|Orchestrator\s*\((?:Carbon|Argon)\)|\bMODEL_PLACEHOLDER_M(?:667|681)\b/i.test(
+    /\bgemini-pro-orchestrator(?:-argon)?\b|\borchestrator-(?:carbon|argon)\b|\borch-(?:carbon|argon)(?:·(?:压缩|壓縮))?(?=\s|$)|Orchestrator\s*\((?:Carbon|Argon)\)|\bMODEL_PLACEHOLDER_M(?:667|681)\b/i.test(
       combined
     );
 

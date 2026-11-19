@@ -204,7 +204,7 @@ test('extractLiveActivity covers thinking, partial streaming tool args, multi-to
   };
   const actPartialTool = extractLiveActivity([streamingToolStep], true);
   assert.equal(actPartialTool.phase, 'tool');
-  assert.equal(actPartialTool.label, '修改文件');
+  assert.equal(actPartialTool.label, '修改檔案');
   assert.equal(actPartialTool.detail, 'LiveOverviewView.js');
 
   // 4. Multi-tool batch execution progress ([1/3] -> [2/3] -> post-tool thinking)
@@ -228,7 +228,7 @@ test('extractLiveActivity covers thinking, partial streaming tool args, multi-to
   // After 1st tool finishes, 2nd tool (run_command) is active -> [2/3] 执行命令 · 运行单元测试 (npm test)
   const actBatch2 = extractLiveActivity([completedPlannerWith3Tools, toolResult1Done], true);
   assert.equal(actBatch2.phase, 'tool');
-  assert.equal(actBatch2.label, '执行命令');
+  assert.equal(actBatch2.label, '執行指令');
   assert.equal(actBatch2.stepProgress, '2/3');
   assert.equal(actBatch2.detail, '运行单元测试 (npm test)');
 
@@ -240,7 +240,7 @@ test('extractLiveActivity covers thinking, partial streaming tool args, multi-to
     true
   );
   assert.equal(actPostTools.phase, 'thinking');
-  assert.equal(actPostTools.label, '修改文件');
+  assert.equal(actPostTools.label, '修改檔案');
   assert.equal(actPostTools.detail, 'main.mjs');
 
   // 5. Waiting for user confirmation on command step
@@ -254,7 +254,7 @@ test('extractLiveActivity covers thinking, partial streaming tool args, multi-to
   };
   const actWait = extractLiveActivity([waitingStep], true);
   assert.equal(actWait.phase, 'waiting');
-  assert.equal(actWait.label, '等待确认 · 执行命令');
+  assert.equal(actWait.label, '等待確認 · 執行指令');
   assert.equal(actWait.detail, '安装依赖包');
 
   // 6. transcript.jsonl format (snake_case tool_calls + JSON-encoded string args + DONE status)
@@ -291,13 +291,13 @@ test('extractLiveActivity covers thinking, partial streaming tool args, multi-to
   };
   const actTranscript1 = extractLiveActivity([transcriptPlannerStep], true);
   assert.equal(actTranscript1.phase, 'tool');
-  assert.equal(actTranscript1.label, '读取文件');
+  assert.equal(actTranscript1.label, '讀取檔案');
   assert.equal(actTranscript1.stepProgress, '1/2');
   assert.equal(actTranscript1.detail, 'plugin.json');
 
   const actTranscript2 = extractLiveActivity([transcriptPlannerStep, transcriptGenericDone], true);
   assert.equal(actTranscript2.phase, 'tool');
-  assert.equal(actTranscript2.label, '执行命令');
+  assert.equal(actTranscript2.label, '執行指令');
   assert.equal(actTranscript2.stepProgress, '2/2');
   assert.equal(actTranscript2.detail, '列出插件项目全部源文件 (Get-ChildItem -Path "f:\\ppt")');
 });
@@ -351,7 +351,7 @@ test('extractModelSteps tracks sequential user turns, merges consecutive prompts
 
   assert.equal(steps[2].turnIndex, 2);
   assert.equal(steps[2].isTurnStart, true);
-  assert.equal(steps[2].turnPrompt, '取消前一句\n第二轮补充提问 [附图]');
+  assert.equal(steps[2].turnPrompt, '取消前一句\n第二轮补充提问 [附圖]');
 
   assert.equal(steps[3].turnIndex, 3);
   assert.equal(steps[3].isTurnStart, true);

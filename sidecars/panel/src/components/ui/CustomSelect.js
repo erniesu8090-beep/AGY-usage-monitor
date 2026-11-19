@@ -264,7 +264,7 @@ export const CustomSelect = defineComponent({
         icon,
         multiple = false,
         allValue = '',
-        multiUnit = isEnglishLocale() ? 'items' : '项',
+        multiUnit = isEnglishLocale() ? 'items' : '項',
       } = getProps();
       patchClasses(rootEl, { 'is-multi': Boolean(multiple) });
       patchAttr(leadIcon, 'hidden', !icon);

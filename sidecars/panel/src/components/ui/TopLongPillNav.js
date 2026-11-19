@@ -17,7 +17,7 @@ export const TopLongPillNav = defineComponent({
       {
         className: 'long-pill-nav',
         role: 'tablist',
-        'aria-label': '主功能视图分割导航',
+        'aria-label': '主功能檢視切換導覽列',
       },
       [glider]
     );

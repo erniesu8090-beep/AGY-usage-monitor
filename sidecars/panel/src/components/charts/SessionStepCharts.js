@@ -42,12 +42,12 @@ export const MODEL_COLOR_VARS = Object.freeze([
 export function getStepModelGroupKey(step) {
   if (!step || typeof step !== 'object') return t('fmt.unknownModel');
   const rawLabel = String(step.baseModelLabel || step.modelLabel || step.label || '')
-    .replace(/\s*\[自动压缩\]\s*$/u, '')
+    .replace(/\s*\[(?:自动压缩|自動壓縮)\]\s*$/u, '')
     .replace(/\s*\((?:Max|XHigh|High|Medium|Low|Thinking|Extra Low|Tiered)\)\s*$/i, '')
     .trim();
   if (rawLabel) return rawLabel;
   const rawShort = String(step.baseModelShort || step.modelShort || step.shortName || '')
-    .replace(/·(?:压缩|Compact)\s*$/iu, '')
+    .replace(/·(?:压缩|壓縮|Compact)\s*$/iu, '')
     .trim();
   return rawShort || t('fmt.unknownModel');
 }

@@ -620,7 +620,7 @@ function cliRenderSingleSlot(metricKey, slotCtx, { isEn = false, useColor = true
           : '生成中...'
         : isEn
           ? 'Idle'
-          : '空闲';
+          : '閒置';
     if (!useColor) return textVal;
     const color = valid
       ? `${SGR_BOLD}${cliStatusSpeedSgr(numVal)}`
@@ -660,7 +660,7 @@ function cliRenderSingleSlot(metricKey, slotCtx, { isEn = false, useColor = true
         ? slotCtx.sessionCost
         : slotCtx.stepCost;
     const needPrefix =
-      metricKey === 'session_cost' && slotSet?.has('cost') ? (isEn ? 'sum ' : '总 ') : '';
+      metricKey === 'session_cost' && slotSet?.has('cost') ? (isEn ? 'sum ' : '總 ') : '';
     const textVal = `${needPrefix}${hasTelemetry ? cliFormatCompactCost(rawVal) : '--'}`;
     if (!useColor) return textVal;
     const color =
@@ -676,7 +676,7 @@ function cliRenderSingleSlot(metricKey, slotCtx, { isEn = false, useColor = true
     const valid =
       hasTelemetry && slotCtx.cacheHitPct != null && Number.isFinite(Number(slotCtx.cacheHitPct));
     const numVal = valid ? Math.max(0, Math.min(100, Math.round(Number(slotCtx.cacheHitPct)))) : 0;
-    const prefix = isEn ? 'cache ' : '缓 ';
+    const prefix = isEn ? 'cache ' : '快 ';
     const textVal = valid ? `${prefix}${numVal}%` : `${prefix}--%`;
     if (!useColor) return textVal;
     const color = valid
@@ -701,10 +701,10 @@ function cliRenderSingleSlot(metricKey, slotCtx, { isEn = false, useColor = true
     quotaPct != null
       ? isEn
         ? `${quotaPct}% left`
-        : `余 ${quotaPct}%`
+        : `餘 ${quotaPct}%`
       : isEn
         ? 'Quota --'
-        : '余 --%';
+        : '餘 --%';
   if (!useColor) return textVal;
   const isDanger = quotaPct != null && quotaPct <= 15;
   const isWarn = !isDanger && quotaPct != null && quotaPct <= 30;
@@ -768,13 +768,13 @@ export function formatCliStatusLineCapsule(slotCtx = {}, options = {}) {
         ? runningSubCount > 0
           ? isEn
             ? `${runningCount} active · ${runningSubCount} sub`
-            : `${runningCount} 运行中 · ${runningSubCount} 子`
+            : `${runningCount} 執行中 · ${runningSubCount} 子`
           : isEn
             ? `${runningCount} active`
-            : `${runningCount} 运行中`
+            : `${runningCount} 執行中`
         : isEn
           ? '0 active'
-          : '0 运行中';
+          : '0 執行中';
     if (!useColor) {
       multiCore = `● ${labelText}`;
     } else {

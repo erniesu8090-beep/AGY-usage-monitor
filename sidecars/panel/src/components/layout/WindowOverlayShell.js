@@ -165,12 +165,12 @@ const COMPOSER_EXCLUDED_ANCESTOR_SELECTOR =
 const COMPOSER_MODEL_LABEL_RE =
   /\b(?:gemini|claude|gpt|argon|carbon|hydrogen|helix|flash|sonnet|opus|haiku|orchestrator|llama|deepseek|qwen|mistral|model_placeholder|placeholder_m\d+|o[134](?:-\w+)?)\b/i;
 const COMPOSER_MODEL_ATTR_RE =
-  /\bmodel[-_\s]?(?:select|picker|switch|selector|menu|name)\b|选择模型|切换模型/i;
-const COMPOSER_MODE_EXACT_RE = /^(?:auto|自动)$/i;
+  /\bmodel[-_\s]?(?:select|picker|switch|selector|menu|name)\b|选择模型|選擇模型|切换模型|切換模型/i;
+const COMPOSER_MODE_EXACT_RE = /^(?:auto|自动|自動)$/i;
 const COMPOSER_MODE_TEXT_RE =
-  /^(?:auto|ask|manual|supervised|autonomous|always\s*allow|turbo|safe|yolo|plan|act|review|confirm|normal|fast|自动|询问|手动|始终允许|受控|规划)(?:\s*(?:mode|模式))?$/i;
+  /^(?:auto|ask|manual|supervised|autonomous|always\s*allow|turbo|safe|yolo|plan|act|review|confirm|normal|fast|自动|自動|询问|詢問|手动|手動|始终允许|始終允許|受控|规划|規劃)(?:\s*(?:mode|模式))?$/i;
 const COMPOSER_MODE_ATTR_RE =
-  /\b(?:auto(?:nomy|matic)?|execution[-_]?mode|agent[-_]?mode|permission|approval|hitl|policy|mode[-_]?selector|mode[-_]?picker)\b|自动|执行模式|权限模式|审批/i;
+  /\b(?:auto(?:nomy|matic)?|execution[-_]?mode|agent[-_]?mode|permission|approval|hitl|policy|mode[-_]?selector|mode[-_]?picker)\b|自动|自動|执行模式|執行模式|权限模式|權限模式|审批|審批/i;
 const COMPOSER_ICON_FONT_CLASS_RE =
   /\b(?:codicon|material-symbols(?:-\w+)?|material-icons(?:-\w+)?|lucide(?:-\w+)?)\b/i;
 
@@ -888,7 +888,7 @@ function findNativeTopRightAnchor() {
     for (const btn of candidates) {
       const text = String(btn.textContent || '').trim();
       if (
-        (text === 'Open IDE' || text === '打开 IDE' || text.includes('Open IDE') || text.includes('打开 IDE')) &&
+        (text === 'Open IDE' || text === '打开 IDE' || text === '開啟 IDE' || text.includes('Open IDE') || text.includes('打开 IDE') || text.includes('開啟 IDE')) &&
         btn.getBoundingClientRect?.().top < 52
       ) {
         return btn.closest?.('div.flex.items-center, div.absolute.right-0') || btn;

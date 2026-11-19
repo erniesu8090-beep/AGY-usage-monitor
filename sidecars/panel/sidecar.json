@@ -2,16 +2,16 @@
   "command": "node",
   "args": ["main.mjs"],
   "restart_policy": "always",
-  "display_name": "用量监控",
-  "description": "实时查看生成速度、首字延迟、上下文占用、可用额度及历史用量。",
+  "display_name": "用量監控",
+  "description": "即時查看生成速度、首字延遲、上下文佔用、可用額度及歷史用量。",
   "has_web_ui": true,
   "ui_config": {
-    "display_name": "用量监控",
+    "display_name": "用量監控",
     "views": [
       {
         "path": "/",
         "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE",
-        "title": "用量监控"
+        "title": "用量監控"
       }
     ]
   }

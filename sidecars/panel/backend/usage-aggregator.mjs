@@ -110,7 +110,7 @@ function resolveTimeWindow(
           : nowMs - 5 * 3600 * 1000;
       return {
         key: '5h',
-        label: reset5hMs > nowMs ? '当前 5h 周期' : '近 5 小时',
+        label: reset5hMs > nowMs ? '目前 5h 週期' : '近 5 小時',
         startMs: start5hMs,
         endMs: nowMs,
       };
@@ -118,7 +118,7 @@ function resolveTimeWindow(
     case 'today':
       return { key: 'today', label: '今日', startMs: getStartOfLocalDayMs(now), endMs: nowMs };
     case '24h':
-      return { key: '24h', label: '近 24 小时', startMs: nowMs - 24 * 3600 * 1000, endMs: nowMs };
+      return { key: '24h', label: '近 24 小時', startMs: nowMs - 24 * 3600 * 1000, endMs: nowMs };
     case 'week': {
       const resetWkMs = cycleAnchors.weeklyResetMs || 0;
       const startWkMs =
@@ -127,7 +127,7 @@ function resolveTimeWindow(
           : getStartOfCurrentWeekMs(now);
       return {
         key: 'week',
-        label: resetWkMs > nowMs ? '当前周限周期' : '本周',
+        label: resetWkMs > nowMs ? '目前週限週期' : '本週',
         startMs: startWkMs,
         endMs: nowMs,
       };
@@ -158,14 +158,14 @@ function resolveTimeWindow(
       const e = Number(customEndMs) > 0 ? Number(customEndMs) : nowMs;
       return {
         key: 'custom',
-        label: '自定义时段',
+        label: '自訂時段',
         startMs: Math.min(s, e),
         endMs: Math.max(s, e),
       };
     }
     case 'all':
     default:
-      return { key: 'all', label: '全部时间', startMs: 0, endMs: Infinity };
+      return { key: 'all', label: '全部時間', startMs: 0, endMs: Infinity };
   }
 }
 
@@ -795,7 +795,7 @@ export function aggregateMultiWindowUsage({
   const trend = planUsageTrend(selectedWindow, nowMs, earliestSelectedStepMs, latestSelectedStepMs);
   const { start: trendStartMs, end: trendEndMs, hourly: useHourly } = trend;
   const pad2 = (n) => String(n).padStart(2, '0');
-  const WEEKDAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  const WEEKDAY_NAMES = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
 
   const trendSeries = [];
   if (useHourly) {

@@ -178,7 +178,7 @@ function enrichActiveConversationSteps(
       (mInfo.modelId && mInfo.modelId !== 'unknown' ? mInfo.modelId : mInfo.shortName);
     const annotatedUpstreamModel = formatUpstreamModelId(rawUpstreamModel, mInfo);
     const modelUpstream = st.isCompactionStep
-      ? `${annotatedUpstreamModel}·压缩`
+      ? `${annotatedUpstreamModel}·壓縮`
       : annotatedUpstreamModel;
 
     const {
@@ -196,8 +196,8 @@ function enrichActiveConversationSteps(
       baseModelLabel: mInfo.label,
       baseModelShort: mInfo.shortName,
       modelUpstream,
-      modelLabel: st.isCompactionStep ? `${mInfo.label} [自动压缩]` : mInfo.label,
-      modelShort: st.isCompactionStep ? `${mInfo.shortName}·压缩` : mInfo.shortName,
+      modelLabel: st.isCompactionStep ? `${mInfo.label} [自動壓縮]` : mInfo.label,
+      modelShort: st.isCompactionStep ? `${mInfo.shortName}·壓縮` : mInfo.shortName,
       family: mInfo.family,
       tokPerSec: roundMetric(tokPerSec),
       selectedSpeedReason: metric.reason,
@@ -858,17 +858,18 @@ export async function buildTelemetryPayloadInternal(
       sideIndex = ++sideQuestionCount;
       agentKind = 'side_question';
       agentOrdinal = sideIndex;
-      shortLabel = `旁路提问 #${sideIndex}`;
+      shortLabel = `旁路提問 #${sideIndex}`;
       badgeText = `旁${sideIndex}`;
       const cleanSideRole =
         rawRole &&
+        rawRole !== '旁路提問' &&
         rawRole !== '旁路提问' &&
         rawRole !== 'Side Question' &&
         rawRole !== 'side_question'
           ? rawRole
           : '';
       customRole = cleanSideRole;
-      roleLabel = cleanSideRole || '旁路提问';
+      roleLabel = cleanSideRole || '旁路提問';
       typeName = 'side_question';
       agentLabel = cleanSideRole ? `${shortLabel} · ${cleanSideRole}` : shortLabel;
     } else {
@@ -1028,9 +1029,9 @@ export async function buildTelemetryPayloadInternal(
 
     const aggregatedRoleLabel =
       normalSubCount > 0 && sideQuestionCount > 0
-        ? `主代理 + ${normalSubCount} 子代理 + ${sideQuestionCount} 旁问`
+        ? `主代理 + ${normalSubCount} 子代理 + ${sideQuestionCount} 旁問`
         : sideQuestionCount > 0
-          ? `主代理 + ${sideQuestionCount} 旁路提问`
+          ? `主代理 + ${sideQuestionCount} 旁路提問`
           : `主代理 + ${subAgentTelemetries.length} 子代理`;
 
     const totalCostUsd = roundSessionCost(totalRawSessionCostUsd);
@@ -1075,7 +1076,7 @@ export async function buildTelemetryPayloadInternal(
       agentKind: 'all',
       agentOrdinal: 0,
       index: -1,
-      shortLabel: '全部汇总',
+      shortLabel: '全部彙總',
       badgeText: '全部',
       role: aggregatedRoleLabel,
       typeName: 'all',
@@ -1439,9 +1440,10 @@ export async function buildTelemetryPayloadInternal(
         agentKind = 'side_question';
         agentOrdinal = sideIndex;
         badgeText = `旁${sideIndex}`;
-        shortLabel = `旁路提问 #${sideIndex}`;
+        shortLabel = `旁路提問 #${sideIndex}`;
         const cleanSide =
           rawRole &&
+          rawRole !== '旁路提問' &&
           rawRole !== '旁路提问' &&
           rawRole !== 'Side Question' &&
           rawRole !== 'side_question'
@@ -1525,7 +1527,7 @@ export async function buildTelemetryPayloadInternal(
           actionKey: 'starting',
           waitingApproval: false,
           detailKey: '',
-          label: '启动中',
+          label: '啟動中',
           detail: '',
           stepProgress: '',
           startedAtMs: mainLiveAct.startedAtMs || 0,
@@ -1627,7 +1629,7 @@ export async function buildTelemetryPayloadInternal(
     }),
     activeConversation: {
       cascadeId: activeCascadeId,
-      title: activeConvSummary?.title || '当前会话',
+      title: activeConvSummary?.title || '目前對話',
       isRunning: activeConvSummary?.status === 'CASCADE_RUN_STATUS_RUNNING',
       status: activeConvSummary?.status || 'IDLE',
       liveActivity: mainAgentTelemetry.liveActivity || null,
@@ -1701,8 +1703,8 @@ export async function buildTelemetryPayloadInternal(
         isOfficial: useOfficialWeekly,
         poolFamily: activePoolKey,
         title: isCustomWeeklyMode
-          ? '每周限额 (自定义本机)'
-          : `每周限额 (${activePoolLabel && activePoolLabel !== 'Unknown' ? activePoolLabel : '当前'})`,
+          ? '每週限額 (自訂本機)'
+          : `每週限額 (${activePoolLabel && activePoolLabel !== 'Unknown' ? activePoolLabel : '目前'})`,
         calls: isCustomWeeklyMode
           ? weekBucket.calls
           : poolsWeeklySummary
