@@ -111,6 +111,7 @@ ssh -L 8787:127.0.0.1:8787 user@your-server
    - 雙擊 [`tools/win-taskbar-widget/Start_Taskbar_Monitor.bat`](tools/win-taskbar-widget/Start_Taskbar_Monitor.bat)（首次啟動會自動以 Windows 內建 .NET Framework 4.x `csc.exe` 編譯，免裝任何套件）。
    - 直接讀取 `usage-monitor` 即時更新的 `cli-status-snapshot.json`，於工作列系統匣左側顯示 `5h` / `7d` 雙排 10 格分段進度條與剩餘倒數，並於系統匣顯示數字方塊圖示。
    - 內建 Windows UIAutomation 工作列捷徑偵測，依可用空位自動切換「雙排進度條 → 超精簡純文字 → 僅系統匣圖示」避免遮擋捷徑；支援左鍵點擊展開全模型池速覽、右鍵切換口徑／配色／開機自啟，以及 `Alt` + 左鍵拖曳微調水平位置。詳見 [`tools/win-taskbar-widget/README.md`](tools/win-taskbar-widget/README.md)。
+   - **運作前提與離線行為**：監控條為純本機讀取端（不直接連網），仍需啟用 `usage-monitor` 外掛（或執行 `standalone.mjs`）寫入 `cli-status-snapshot.json` 才會更新數值；未開啟 Antigravity 時仍可單獨啟動，有舊快照時會顯示最後紀錄並繼續倒數至 `0m`（無快照時顯示 `--`），待開啟 Antigravity 後自動刷新。
 
 <details>
 <summary>設定說明、計算口徑與本機資料保存目錄</summary>

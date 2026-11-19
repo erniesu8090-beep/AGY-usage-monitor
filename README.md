@@ -177,6 +177,7 @@ ssh -L 8787:127.0.0.1:8787 user@your-server
    - Run [`tools/win-taskbar-widget/Start_Taskbar_Monitor.bat`](tools/win-taskbar-widget/Start_Taskbar_Monitor.bat) (auto-compiles with Windows' built-in .NET Framework 4.x `csc.exe`, zero external dependencies).
    - Displays a compact two-row `5h` / `7d` 10-segment quota bar + countdown to the left of the system tray alongside a numeric system tray badge, reading the live `cli-status-snapshot.json` written by `usage-monitor`.
    - Uses Windows UIAutomation to automatically detect taskbar shortcuts and switch between the full segmented bar, ultra-compact text (`5h XX%` / `7d XX%`), or tray-only mode to avoid overlapping pinned/running icons. Supports left-click quick-view across all pools, right-click configuration (pool pinning, remaining/used `%`, color themes, auto-start), and `Alt + Left-Drag` horizontal adjustment. See [`tools/win-taskbar-widget/README.md`](tools/win-taskbar-widget/README.md).
+   - **Prerequisites & offline behavior**: The taskbar bar is a read-only local consumer of `cli-status-snapshot.json` and does not query servers directly; `usage-monitor` (plugin or `standalone.mjs`) must run alongside Antigravity to refresh quota data. Starting the bar without Antigravity open works safely—it displays the last cached snapshot with live local countdown until `0m` (or `--` if no snapshot exists yet) and refreshes once Antigravity starts.
 
 <details>
 <summary>Standalone CLI flags, background auto-start, and non-loopback token auth</summary>
