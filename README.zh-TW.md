@@ -31,6 +31,7 @@ Google Antigravity 2.0、Antigravity IDE 與 Antigravity CLI 的本機用量、�
 1. **全介面台灣繁體中文化**：完整轉換外掛資訊（`plugin.json`、`sidecar.json`、`index.html`）、前端多語系字典（`src/i18n/zh-CN.js`）、UI 元件標籤、後端狀態／錯誤訊息、CLI `statusLine` 與軌跡動作文字（採用台灣慣用詞彙，如「快取」「預設」「設定」「重新整理」「對話」「最吃緊額度」等），並已重新編譯打包 `app.js` 與 `styles.css`。
 2. **雙語相容保護**：針對主程式原生按鈕偵測（`WindowOverlayShell.js`）、壓縮標記判斷（`SessionStepCharts.js`、`formatters.js`）與自訂 Token 欄位別名（`shared/settings-normalization.mjs`）皆保留簡體相容並擴充繁體匹配。
 3. **非 ASCII 路徑測試修正**：修正 `sidecars/panel/test/window-bridge.test.mjs` 解析 `mcp-entry.mjs` 路徑時補上 `decodeURIComponent(...)`，避免在含中文字元的工作區路徑下執行測試失敗。
+4. **Windows 11 工作列配額監控條**：新增獨立零相依 C# 附屬工具（[`tools/win-taskbar-widget/`](tools/win-taskbar-widget/README.md)），直接讀取外掛即時產出的 `cli-status-snapshot.json`，於系統匣左側顯示 `5h`／`7d` 雙排進度條與數字圖示，並支援 UIAutomation 自動避讓工作列捷徑。
 
 ---
 
@@ -105,6 +106,11 @@ node ~/.gemini/config/plugins/usage-monitor/sidecars/panel/standalone.mjs --port
 # 2. 若為遠端主機，透過 SSH Port Forwarding 連線後開啟 http://localhost:8787
 ssh -L 8787:127.0.0.1:8787 user@your-server
 ```
+
+6. **Windows 11 工作列配額監控條（選用附屬工具）**：
+   - 雙擊 [`tools/win-taskbar-widget/Start_Taskbar_Monitor.bat`](tools/win-taskbar-widget/Start_Taskbar_Monitor.bat)（首次啟動會自動以 Windows 內建 .NET Framework 4.x `csc.exe` 編譯，免裝任何套件）。
+   - 直接讀取 `usage-monitor` 即時更新的 `cli-status-snapshot.json`，於工作列系統匣左側顯示 `5h` / `7d` 雙排 10 格分段進度條與剩餘倒數，並於系統匣顯示數字方塊圖示。
+   - 內建 Windows UIAutomation 工作列捷徑偵測，依可用空位自動切換「雙排進度條 → 超精簡純文字 → 僅系統匣圖示」避免遮擋捷徑；支援左鍵點擊展開全模型池速覽、右鍵切換口徑／配色／開機自啟，以及 `Alt` + 左鍵拖曳微調水平位置。詳見 [`tools/win-taskbar-widget/README.md`](tools/win-taskbar-widget/README.md)。
 
 <details>
 <summary>設定說明、計算口徑與本機資料保存目錄</summary>

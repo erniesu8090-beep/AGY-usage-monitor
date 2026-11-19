@@ -6,3 +6,4 @@ plan/
 .account-test-*
 .DS_Store
 Thumbs.db
+*.exe
