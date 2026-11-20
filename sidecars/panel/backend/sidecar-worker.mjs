@@ -7,13 +7,15 @@
  * without ever exiting the parent `SidecarApp` process or losing its host-assigned HTTP port.
  */
 
+import { join } from 'node:path';
 import { parentPort } from 'node:worker_threads';
 import {
   bootBundleVersion,
   bootWindowBridgeRuntime,
   dispatchBridgeApiRequest,
 } from './api-actions.mjs';
-import { computeRuntimeCodeVersion } from './config.mjs';
+import { computeRuntimeCodeVersion, DATA_DIR } from './config.mjs';
+import { createAutoStandaloneHost } from './standalone-server.mjs';
 
 let shuttingDown = false;
 let reloadRequested = false;
@@ -31,6 +33,16 @@ function requestWorkerReload() {
 const bridgeController = bootWindowBridgeRuntime({
   allowDynamicLs: true,
   onRestart: requestWorkerReload,
+});
+
+const standaloneHost = createAutoStandaloneHost({
+  defaultAutoPort: 8787,
+  runtimeStateFile: join(DATA_DIR, 'standalone-runtime.json'),
+  onRestart: requestWorkerReload,
+});
+
+process.on('exit', () => {
+  standaloneHost.cleanupSync();
 });
 
 const driftWatchTimer = setInterval(() => {
@@ -51,7 +63,10 @@ async function gracefulStop() {
   shuttingDown = true;
   clearInterval(driftWatchTimer);
   try {
-    await bridgeController?.stop?.({ disposeWindows: false });
+    await Promise.allSettled([
+      bridgeController?.stop?.({ disposeWindows: false }),
+      standaloneHost.stop(),
+    ]);
   } catch {
     // Ignore shutdown errors
   }

@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -141,6 +142,17 @@ namespace AntigravityTaskbarMonitor
                     Assert(loaded.BarMode == "mini", "BarMode round-trip");
                     Assert(loaded.OffsetX == -48, "OffsetX round-trip");
                     Assert(loaded.HideOnFullscreen == false, "HideOnFullscreen round-trip");
+
+                    // 6b. Web monitor discovery reads panel\data\{standalone-runtime.json,settings.json} and verifies active port
+                    string panelDataDir = Path.Combine(tempDir, "antigravity", "sidecar_data", "usage-monitor", "panel", "data");
+                    Directory.CreateDirectory(panelDataDir);
+                    File.WriteAllText(Path.Combine(panelDataDir, "settings.json"), "{\"standalonePort\": 8787}", Encoding.UTF8);
+                    Assert(QuotaDataStore.DiscoverWebMonitorUrl(p => p == 8787) == "http://127.0.0.1:8787/", "Should discover port from panel\\data\\settings.json");
+                    Assert(QuotaDataStore.DiscoverWebMonitorUrl(p => false) == null, "Should return null when discovered port is not listening");
+
+                    File.WriteAllText(Path.Combine(panelDataDir, "standalone-runtime.json"), "{\"port\": 9091}", Encoding.UTF8);
+                    Assert(QuotaDataStore.DiscoverWebMonitorUrl(p => p == 9091 || p == 8787) == "http://127.0.0.1:9091/", "Should prefer live runtime port over settings");
+                    Assert(QuotaDataStore.DiscoverWebMonitorUrl(p => p == 8787) == "http://127.0.0.1:8787/", "Should fall back to settings port if runtime port is dead");
                 }
                 finally
                 {

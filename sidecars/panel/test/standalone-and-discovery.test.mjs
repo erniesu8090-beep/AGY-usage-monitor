@@ -11,6 +11,7 @@ import {
   parseSsListeningPorts,
 } from '../backend/ls-discovery.mjs';
 import {
+  createAutoStandaloneHost,
   createStandaloneWebServer,
   isLoopbackBindHost,
   parseStandaloneCliArgs,
@@ -427,5 +428,45 @@ test('Standalone Web server enforces loopback/non-loopback security boundaries, 
     assert.equal(validPost.status, 200);
   } finally {
     await tokenSrv.stop();
+  }
+});
+
+test('createStandaloneWebServer and createAutoStandaloneHost manage runtimeStateFile and EADDRINUSE fallback', async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ag-um-runtime-'));
+  const runtimeFile = path.join(tmpDir, 'standalone-runtime.json');
+  const occupier = createStandaloneWebServer({
+    host: '127.0.0.1',
+    port: 0,
+    skipStartupDiscovery: true,
+    handleApiRequest: async () => ({ status: 200, contentType: 'application/json', body: '{}' }),
+    readAssetFn: async (name) => `OCCUPIER:${name}`,
+  });
+
+  try {
+    const occStatus = await occupier.start();
+    const autoHost = createAutoStandaloneHost({
+      defaultAutoPort: occStatus.port,
+      runtimeStateFile: runtimeFile,
+      env: { USAGE_MONITOR_STANDALONE_HOST: '127.0.0.1' },
+    });
+
+    try {
+      await autoHost.ready();
+      const autoStatus = autoHost.getStatus();
+      assert.equal(autoStatus.running, true);
+      assert.notEqual(autoStatus.port, occStatus.port);
+      assert.ok(autoStatus.port >= 1024);
+
+      const persisted = JSON.parse(fs.readFileSync(runtimeFile, 'utf8'));
+      assert.equal(persisted.pid, process.pid);
+      assert.equal(persisted.port, autoStatus.port);
+    } finally {
+      await autoHost.stop();
+    }
+
+    assert.equal(fs.existsSync(runtimeFile), false);
+  } finally {
+    await occupier.stop();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });

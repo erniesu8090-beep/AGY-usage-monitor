@@ -8,7 +8,7 @@
  * - `node sidecars/panel/standalone.mjs --host 0.0.0.0 --port 8787 --token <secret>`（带访问令牌保护）
  */
 
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 function applyPreImportEnvOverrides(argv) {
@@ -77,6 +77,7 @@ export async function runStandaloneCli(argv = process.argv.slice(2)) {
       token: parsed.token,
       lsAddr: parsed.lsAddr,
       csrfToken: parsed.csrfToken,
+      runtimeStateFile: join(DATA_DIR, 'standalone-runtime.json'),
     });
     const status = await controller.start();
     await ensureLsEndpointDiscovered({ force: false }).catch(() => false);

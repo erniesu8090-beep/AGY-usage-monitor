@@ -9,13 +9,21 @@
  */
 
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
+import { dirname } from 'node:path';
 import {
   dispatchBridgeApiRequest,
   isLocalHostRequest,
   readLocalAsync,
+  setStandalonePortListener,
 } from './api-actions.mjs';
-import { loadSettings, lsRuntimeEndpoint, setLsRuntimeEndpoint } from './config.mjs';
+import {
+  loadSettings,
+  lsRuntimeEndpoint,
+  normalizeStandalonePort,
+  setLsRuntimeEndpoint,
+} from './config.mjs';
 import { ensureLsEndpointDiscovered } from './ls-discovery.mjs';
 import { ensureCliStatusLineConfigured } from './cli-statusline-config.mjs';
 import { syncCloudCatalog } from './plugin-updater.mjs';
@@ -329,6 +337,43 @@ function isSameOriginPostRequest(req) {
   }
 }
 
+export function writeStandaloneRuntimeState(runtimeStateFile, status) {
+  const target = String(runtimeStateFile || '').trim();
+  if (!target || !status?.port) return;
+  try {
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(
+      target,
+      JSON.stringify(
+        {
+          pid: process.pid,
+          port: Number(status.port),
+          host: String(status.host || '127.0.0.1'),
+          url: String(status.url || ''),
+          updatedAtMs: Date.now(),
+        },
+        null,
+        2
+      ),
+      'utf8'
+    );
+  } catch {
+    // 忽略執行期狀態檔寫入錯誤，不影響主 HTTP 服務
+  }
+}
+
+export function cleanupStandaloneRuntimeState(runtimeStateFile, expectedPid = process.pid) {
+  const target = String(runtimeStateFile || '').trim();
+  if (!target) return;
+  try {
+    const parsed = JSON.parse(readFileSync(target, 'utf8'));
+    if (Number(parsed?.pid) !== Number(expectedPid)) return;
+    unlinkSync(target);
+  } catch {
+    // 檔案不存在或格式無效時安全忽略
+  }
+}
+
 /**
  * 创建独立 Web 监控服务器控制器。
  *
@@ -338,6 +383,7 @@ function isSameOriginPostRequest(req) {
  *   token?: string,
  *   lsAddr?: string,
  *   csrfToken?: string,
+ *   runtimeStateFile?: string,
  *   handleApiRequest?: typeof dispatchBridgeApiRequest,
  *   readAssetFn?: typeof readLocalAsync,
  *   onRestart?: (() => void) | null,
@@ -348,6 +394,7 @@ export function createStandaloneWebServer(options = {}) {
   const host = String(options.host || '127.0.0.1').trim() || '127.0.0.1';
   const requestedPort = Number.isInteger(options.port) ? options.port : 8787;
   const token = String(options.token || '').trim();
+  const runtimeStateFile = String(options.runtimeStateFile || '').trim();
   const loopbackHost = isLoopbackBindHost(host);
 
   if (!loopbackHost && !token) {
@@ -608,13 +655,20 @@ export function createStandaloneWebServer(options = {}) {
     server = srv;
     const addrInfo = srv.address();
     boundPort = typeof addrInfo === 'object' && addrInfo ? Number(addrInfo.port || 0) : requestedPort;
-    return getStatus();
+    const status = getStatus();
+    if (runtimeStateFile) {
+      writeStandaloneRuntimeState(runtimeStateFile, status);
+    }
+    return status;
   }
 
   async function stop() {
     const srv = server;
     server = null;
     boundPort = 0;
+    if (runtimeStateFile) {
+      cleanupStandaloneRuntimeState(runtimeStateFile);
+    }
     if (!srv) return;
     await new Promise((resolve) => {
       srv.close(() => resolve());
@@ -637,5 +691,130 @@ export function createStandaloneWebServer(options = {}) {
     start,
     stop,
     getStatus,
+  };
+}
+
+/**
+ * 在 Sidecar Worker 內隨宿主生命週期自動託管獨立 Web 監控服務：
+ * - 優先使用 `USAGE_MONITOR_STANDALONE_PORT`（設為 `0` 可明確停用）；
+ * - 其次讀取 `settings.json` 的 `standalonePort`；
+ * - 若均未指定（預設 `0`），自動嘗試 `defaultAutoPort`（預設 `8787`），
+ *   遇埠號佔用時自動改以隨機可用埠監聽並寫入 `runtimeStateFile`。
+ */
+export function createAutoStandaloneHost({
+  defaultAutoPort = 8787,
+  runtimeStateFile = '',
+  onRestart = null,
+  env = process.env,
+} = {}) {
+  let shuttingDown = false;
+  let activeController = null;
+  let activeRequestedPort = -1;
+  let reconcileChain = Promise.resolve();
+
+  const envArgs = parseStandaloneCliArgs([], env, { defaultPort: 0 });
+  const envPinnedPort = envArgs.portExplicit ? normalizeStandalonePort(envArgs.port) : null;
+
+  function resolveDesiredPort(explicitPort = undefined) {
+    if (envPinnedPort !== null) {
+      return envPinnedPort;
+    }
+    const candidate =
+      explicitPort !== undefined ? explicitPort : loadSettings()?.standalonePort;
+    const normalized = normalizeStandalonePort(candidate);
+    if (normalized > 0) return normalized;
+    return normalizeStandalonePort(defaultAutoPort);
+  }
+
+  async function startWithFallback(targetPort) {
+    const serverOpts = {
+      host: envArgs.host,
+      port: targetPort,
+      token: envArgs.token,
+      runtimeStateFile,
+      onRestart,
+      skipStartupDiscovery: true,
+    };
+    const srv = createStandaloneWebServer(serverOpts);
+    try {
+      await srv.start();
+      return srv;
+    } catch (err) {
+      if (err?.code === 'EADDRINUSE' && targetPort > 0) {
+        const fallbackSrv = createStandaloneWebServer({ ...serverOpts, port: 0 });
+        await fallbackSrv.start();
+        return fallbackSrv;
+      }
+      throw err;
+    }
+  }
+
+  function scheduleReconcile(targetPort) {
+    reconcileChain = reconcileChain
+      .then(async () => {
+        if (shuttingDown) return;
+        const desired = resolveDesiredPort(targetPort);
+        if (desired === activeRequestedPort && activeController) {
+          return;
+        }
+        if (activeController) {
+          const prev = activeController;
+          activeController = null;
+          activeRequestedPort = -1;
+          await prev.stop().catch(() => {});
+        }
+        if (desired <= 0 || shuttingDown) {
+          return;
+        }
+        try {
+          const started = await startWithFallback(desired);
+          if (shuttingDown) {
+            await started.stop().catch(() => {});
+            return;
+          }
+          activeController = started;
+          activeRequestedPort = desired;
+        } catch {
+          // 非致命：忽略獨立 Web 服務啟動異常，不影響主 Sidecar 面板
+        }
+      })
+      .catch(() => {});
+    return reconcileChain;
+  }
+
+  setStandalonePortListener((updatedPort) => {
+    if (envPinnedPort === null) {
+      void scheduleReconcile(updatedPort);
+    }
+  });
+  void scheduleReconcile();
+
+  async function stop() {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    setStandalonePortListener(null);
+    await reconcileChain.catch(() => {});
+    const prev = activeController;
+    activeController = null;
+    activeRequestedPort = -1;
+    if (prev) {
+      await prev.stop().catch(() => {});
+    }
+    if (runtimeStateFile) {
+      cleanupStandaloneRuntimeState(runtimeStateFile);
+    }
+  }
+
+  function cleanupSync() {
+    if (runtimeStateFile) {
+      cleanupStandaloneRuntimeState(runtimeStateFile);
+    }
+  }
+
+  return {
+    stop,
+    cleanupSync,
+    ready: () => reconcileChain,
+    getStatus: () => activeController?.getStatus?.() || { running: false, port: 0, url: '' },
   };
 }

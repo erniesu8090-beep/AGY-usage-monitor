@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Web.Script.Serialization;
 
@@ -105,14 +107,33 @@ namespace AntigravityTaskbarMonitor
             return Path.Combine(home, ".gemini");
         }
 
-        public static string[] GetSnapshotCandidatePaths()
+        public static string[] GetPanelDataCandidateDirs()
         {
             string geminiBase = ResolveGeminiBaseDir();
-            return new string[]
+            string[] productRoots = new string[]
             {
-                Path.Combine(geminiBase, "antigravity", "sidecar_data", "usage-monitor", "panel", "data", "cli-status-snapshot.json"),
-                Path.Combine(geminiBase, "antigravity-cli", "sidecar_data", "usage-monitor", "panel", "data", "cli-status-snapshot.json")
+                "antigravity",
+                "antigravity-cli",
+                "antigravity-ide",
+                "antigravity-idea"
             };
+            var dirs = new string[productRoots.Length];
+            for (int i = 0; i < productRoots.Length; i++)
+            {
+                dirs[i] = Path.Combine(geminiBase, productRoots[i], "sidecar_data", "usage-monitor", "panel", "data");
+            }
+            return dirs;
+        }
+
+        public static string[] GetSnapshotCandidatePaths()
+        {
+            string[] dataDirs = GetPanelDataCandidateDirs();
+            var paths = new string[dataDirs.Length];
+            for (int i = 0; i < dataDirs.Length; i++)
+            {
+                paths[i] = Path.Combine(dataDirs[i], "cli-status-snapshot.json");
+            }
+            return paths;
         }
 
         public static string GetSettingsFilePath()
@@ -123,23 +144,61 @@ namespace AntigravityTaskbarMonitor
 
         public static string DiscoverWebMonitorUrl()
         {
-            string geminiBase = ResolveGeminiBaseDir();
-            string[] dataDirs = new string[]
+            return DiscoverWebMonitorUrl(IsLocalPortListening);
+        }
+
+        public static string DiscoverWebMonitorUrl(Func<int, bool> portProbe)
+        {
+            Func<int, bool> probe = portProbe ?? IsLocalPortListening;
+            string[] dataDirs = GetPanelDataCandidateDirs();
+            var candidates = new[]
             {
-                Path.Combine(geminiBase, "antigravity", "sidecar_data", "usage-monitor", "panel"),
-                Path.Combine(geminiBase, "antigravity-cli", "sidecar_data", "usage-monitor", "panel")
+                new { FileName = "standalone-runtime.json", FieldName = "port" },
+                new { FileName = "settings.json", FieldName = "standalonePort" }
             };
 
-            for (int i = 0; i < dataDirs.Length; i++)
+            for (int c = 0; c < candidates.Length; c++)
             {
-                string settingsFile = Path.Combine(dataDirs[i], "settings.json");
-                int standalonePort = ReadIntFieldFromJsonFile(settingsFile, "standalonePort");
-                if (standalonePort >= 1024 && standalonePort <= 65535)
+                for (int i = 0; i < dataDirs.Length; i++)
                 {
-                    return string.Format(CultureInfo.InvariantCulture, "http://127.0.0.1:{0}/", standalonePort);
+                    string filePath = Path.Combine(dataDirs[i], candidates[c].FileName);
+                    int port = ReadIntFieldFromJsonFile(filePath, candidates[c].FieldName);
+                    if (port >= 1024 && port <= 65535 && probe(port))
+                    {
+                        return string.Format(CultureInfo.InvariantCulture, "http://127.0.0.1:{0}/", port);
+                    }
                 }
             }
             return null;
+        }
+
+        public static bool IsLocalPortListening(int port)
+        {
+            if (port < 1024 || port > 65535) return false;
+            TcpClient client = null;
+            try
+            {
+                client = new TcpClient(AddressFamily.InterNetwork);
+                IAsyncResult ar = client.BeginConnect(IPAddress.Loopback, port, null, null);
+                if (!ar.AsyncWaitHandle.WaitOne(80))
+                {
+                    return false;
+                }
+                client.EndConnect(ar);
+                return client.Connected;
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                if (client != null)
+                {
+                    try { client.Close(); }
+                    catch { }
+                }
+            }
         }
 
         private static int ReadIntFieldFromJsonFile(string path, string fieldName)
