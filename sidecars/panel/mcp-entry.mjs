@@ -1,23 +1,18 @@
 /**
- * @fileoverview 零工具开销的轻量 MCP Stdio 宿主保活入口 (`mcp_config.json`)。
+ * @fileoverview 去侵入化唯讀 MCP Stdio 服務入口 (`mcp_config.json`)。
  *
- * 设计原因：
- * Antigravity IDE 默认关闭了 UI Sidecar 管理器 (`enable-sidecars = false`)，不会启动 `sidecar.json`。
- * 通过将本文件注册为插件内置的 0 工具 MCP Stdio 服务：
- * 1. `agy --hub` 启动或启用插件时会自动拉起本进程，从而托管启动 `bridge-daemon.mjs` 将胶囊挂载至 IDE 顶栏；
- * 2. `tools/list` 返回空数组 `[]`，不注入任何工具定义，消耗 0 个上下文 Token；
- * 3. 用户在 Customizations 中关闭插件开关或退出 IDE 时，`agy --hub` 关闭 `stdin`，
- *    本进程立即通知 `bridge-daemon.mjs` 卸载窗口顶栏组件并干净退出。
+ * 提供三個唯讀查詢工具（不啟動任何 CDP 注入或背景守護程序）：
+ * - `get_quota_status`：查詢各模型配額池餘量與重置倒數
+ * - `get_conversation_usage`：查詢指定或最近活躍對話的 Token、費用、速度與上下文佔比
+ * - `get_usage_summary`：查詢跨對話歷史用量與模型統計彙總
  */
 
-import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const PANEL_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_MANIFEST_PATH = join(dirname(dirname(PANEL_DIR)), 'plugin.json');
-const DAEMON_SCRIPT_PATH = join(PANEL_DIR, 'bridge-daemon.mjs');
 
 const SUPPORTED_MCP_VERSIONS = new Set([
   '2025-11-25',
@@ -26,6 +21,77 @@ const SUPPORTED_MCP_VERSIONS = new Set([
   '2024-11-05',
 ]);
 const DEFAULT_MCP_VERSION = '2025-03-26';
+const DEFAULT_FALLBACK_VERSION = '1.5.1';
+
+export const MCP_TOOL_DEFS = Object.freeze([
+  Object.freeze({
+    name: 'get_quota_status',
+    description:
+      '唯讀查詢目前帳號各模型配額池（Gemini、Argon、Carbon、Claude & GPT）的 5 小時與每週剩餘額度、重置時間與官方資料狀態。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        forceRefresh: {
+          type: 'boolean',
+          description: '是否強制略過短期快取並向本機語言伺服器重新查詢（預設 false）',
+        },
+      },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+  }),
+  Object.freeze({
+    name: 'get_conversation_usage',
+    description:
+      '唯讀查詢指定對話（或最近活躍對話）的 Token 用量、估算費用、輸出速度 (TPS)、首字延遲 (TTFT)、快取命中率與上下文佔用明細。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        conversationId: {
+          type: 'string',
+          description: '選填。指定對話 ID（省略時自動選擇最近活躍對話）',
+        },
+        includeSteps: {
+          type: 'boolean',
+          description: '是否回傳最近步驟明細（預設 false）',
+        },
+        stepLimit: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 50,
+          description: '當 includeSteps=true 時最多回傳幾筆最近步驟（預設 10，上限 50）',
+        },
+      },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+  }),
+  Object.freeze({
+    name: 'get_usage_summary',
+    description:
+      '唯讀查詢跨對話歷史用量彙總，包含總 Token、估算費用、快取節省費用、模型分佈與用戶端來源佔比。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        range: {
+          type: 'string',
+          enum: ['today', '24h', '7d', '14d', '30d', 'all', 'custom'],
+          description: '查詢時間區間（預設 all）',
+        },
+        startMs: {
+          type: 'number',
+          description: '當 range=custom 時的起始時間戳（毫秒）',
+        },
+        endMs: {
+          type: 'number',
+          description: '當 range=custom 時的結束時間戳（毫秒）',
+        },
+      },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true },
+  }),
+]);
 
 export function readMcpServerVersion() {
   try {
@@ -36,24 +102,126 @@ export function readMcpServerVersion() {
       }
     }
   } catch {
-    // 忽略清单读取失败
+    // 忽略清單讀取失敗
   }
-  return '1.4.4';
+  return DEFAULT_FALLBACK_VERSION;
+}
+
+let telemetryLoaderPromise = null;
+
+async function defaultLoadTelemetry({ conversationId = '', force = false, range = 'all', startMs = 0, endMs = 0 } = {}) {
+  if (!telemetryLoaderPromise) {
+    telemetryLoaderPromise = Promise.all([
+      import('./backend/config.mjs'),
+      import('./backend/ls-discovery.mjs'),
+      import('./backend/telemetry-builder.mjs'),
+    ]).then(([configMod, discoveryMod, telemetryMod]) => ({
+      lsRuntimeEndpoint: configMod.lsRuntimeEndpoint,
+      ensureLsEndpointDiscovered: discoveryMod.ensureLsEndpointDiscovered,
+      buildTelemetryPayload: telemetryMod.buildTelemetryPayload,
+    }));
+  }
+  const { lsRuntimeEndpoint, ensureLsEndpointDiscovered, buildTelemetryPayload } =
+    await telemetryLoaderPromise;
+  if (lsRuntimeEndpoint.addr !== 'test.invalid' && !lsRuntimeEndpoint.baseUrl) {
+    await ensureLsEndpointDiscovered({ force: false }).catch(() => false);
+  }
+  return buildTelemetryPayload(conversationId, Boolean(force), { range, startMs, endMs });
+}
+
+function summarizeQuotaStatus(payload) {
+  const quotas = payload?.quotas || {};
+  return {
+    account: payload?.account || null,
+    meta: quotas.meta || null,
+    activePool: quotas.activePool || null,
+    pools: Array.isArray(quotas.pools) ? quotas.pools : [],
+    weekly: quotas.weekly || null,
+  };
+}
+
+function summarizeConversationUsage(payload, { includeSteps = false, stepLimit = 10 } = {}) {
+  const active = payload?.activeConversation || {};
+  const cap = active.aggregated || active;
+  const limit = Math.max(1, Math.min(50, Number.isFinite(Number(stepLimit)) ? Math.floor(Number(stepLimit)) : 10));
+  const rawSteps = Array.isArray(cap.recentSteps)
+    ? cap.recentSteps
+    : Array.isArray(active.recentSteps)
+      ? active.recentSteps
+      : [];
+  return {
+    cascadeId: active.cascadeId || null,
+    title: active.title || null,
+    isRunning: Boolean(cap.isRunning ?? active.isRunning),
+    stepCount: Number(cap.stepCount ?? active.stepCount ?? 0),
+    activeModelShort: cap.activeModelShort ?? active.activeModelShort ?? null,
+    latestTokPerSec: cap.latestTokPerSec ?? active.latestTokPerSec ?? null,
+    avgTokPerSec: cap.avgTokPerSec ?? active.avgTokPerSec ?? null,
+    latestTtftSec: cap.latestTtftSec ?? active.latestTtftSec ?? null,
+    latestStepCostUsd: cap.latestStepCostUsd ?? active.latestStepCostUsd ?? null,
+    sessionCostUsd: cap.sessionCostUsd ?? active.sessionCostUsd ?? 0,
+    inputTokens: cap.inputTokens ?? active.inputTokens ?? 0,
+    cacheReadTokens: cap.cacheReadTokens ?? active.cacheReadTokens ?? 0,
+    outputTokens: cap.outputTokens ?? active.outputTokens ?? 0,
+    totalTokens: cap.totalTokens ?? active.totalTokens ?? 0,
+    latestCacheHitPct: cap.latestCacheHitPct ?? active.latestCacheHitPct ?? null,
+    sessionCacheHitPct: cap.sessionCacheHitPct ?? active.sessionCacheHitPct ?? null,
+    context: active.context || null,
+    modelBreakdown: Array.isArray(cap.modelBreakdown)
+      ? cap.modelBreakdown
+      : Array.isArray(active.modelBreakdown)
+        ? active.modelBreakdown
+        : [],
+    ...(includeSteps ? { recentSteps: rawSteps.slice(-limit) } : {}),
+  };
+}
+
+function summarizeUsageOverview(payload) {
+  const cons = payload?.consumption || {};
+  return {
+    selectedRange: cons.selectedRange || null,
+    session: cons.session || null,
+    account: cons.account || null,
+    presets: cons.presets || null,
+    sourcesBreakdown: Array.isArray(cons.sourcesBreakdown) ? cons.sourcesBreakdown : [],
+    modelBreakdown: Array.isArray(payload?.modelBreakdown) ? payload.modelBreakdown : [],
+    conversationsCount: Array.isArray(payload?.conversations) ? payload.conversations.length : 0,
+  };
+}
+
+export async function executeReadOnlyMcpTool(name, args = {}, { loadTelemetryFn = defaultLoadTelemetry } = {}) {
+  const safeArgs = args && typeof args === 'object' && !Array.isArray(args) ? args : {};
+  if (name === 'get_quota_status') {
+    const payload = await loadTelemetryFn({ force: Boolean(safeArgs.forceRefresh) });
+    return summarizeQuotaStatus(payload);
+  }
+  if (name === 'get_conversation_usage') {
+    const rawCid = String(safeArgs.conversationId || '').trim();
+    const conversationId = rawCid && !/[\\/]|\.\./.test(rawCid) ? rawCid : '';
+    const payload = await loadTelemetryFn({ conversationId });
+    return summarizeConversationUsage(payload, {
+      includeSteps: Boolean(safeArgs.includeSteps),
+      stepLimit: safeArgs.stepLimit,
+    });
+  }
+  if (name === 'get_usage_summary') {
+    const allowedRanges = new Set(['today', '24h', '7d', '14d', '30d', 'all', 'custom']);
+    const range = allowedRanges.has(safeArgs.range) ? safeArgs.range : 'all';
+    const startMs = Number.isFinite(Number(safeArgs.startMs)) ? Math.max(0, Math.floor(Number(safeArgs.startMs))) : 0;
+    const endMs = Number.isFinite(Number(safeArgs.endMs)) ? Math.max(0, Math.floor(Number(safeArgs.endMs))) : 0;
+    const payload = await loadTelemetryFn({ range, startMs, endMs });
+    return summarizeUsageOverview(payload);
+  }
+  throw new Error(`Unknown tool: ${name}`);
 }
 
 /**
- * 纯函数处理单条 MCP JSON-RPC 2.0 消息；通知类消息（无 `id`）返回 `null`。
- *
- * @param {object} msg
- * @param {string} [serverVersion='1.4.4']
- * @returns {object|null}
+ * 處理單條 MCP JSON-RPC 2.0 同步查詢訊息（不含工具執行），通知類訊息返回 `null`。
  */
-export function handleMcpJsonRpcMessage(msg, serverVersion = '1.4.4') {
+export function handleMcpJsonRpcMessage(msg, serverVersion = DEFAULT_FALLBACK_VERSION) {
   if (!msg || typeof msg !== 'object') return null;
   const hasId = Object.prototype.hasOwnProperty.call(msg, 'id') && msg.id !== undefined;
-  if (!hasId) {
-    return null;
-  }
+  if (!hasId) return null;
   const id = msg.id;
   const method = String(msg.method || '');
 
@@ -67,144 +235,78 @@ export function handleMcpJsonRpcMessage(msg, serverVersion = '1.4.4') {
       id,
       result: {
         protocolVersion,
-        capabilities: {
-          tools: {},
-        },
-        serverInfo: {
-          name: 'usage-monitor-host',
-          version: serverVersion,
-        },
+        capabilities: { tools: {} },
+        serverInfo: { name: 'usage-monitor', version: serverVersion },
       },
     };
   }
 
-  if (method === 'ping') {
-    return { jsonrpc: '2.0', id, result: {} };
-  }
-
-  if (method === 'tools/list') {
-    return { jsonrpc: '2.0', id, result: { tools: [] } };
-  }
-
-  if (method === 'resources/list') {
-    return { jsonrpc: '2.0', id, result: { resources: [] } };
-  }
-
-  if (method === 'resources/templates/list') {
-    return { jsonrpc: '2.0', id, result: { resourceTemplates: [] } };
-  }
-
-  if (method === 'prompts/list') {
-    return { jsonrpc: '2.0', id, result: { prompts: [] } };
-  }
+  if (method === 'ping') return { jsonrpc: '2.0', id, result: {} };
+  if (method === 'tools/list') return { jsonrpc: '2.0', id, result: { tools: MCP_TOOL_DEFS } };
+  if (method === 'resources/list') return { jsonrpc: '2.0', id, result: { resources: [] } };
+  if (method === 'resources/templates/list') return { jsonrpc: '2.0', id, result: { resourceTemplates: [] } };
+  if (method === 'prompts/list') return { jsonrpc: '2.0', id, result: { prompts: [] } };
 
   return {
     jsonrpc: '2.0',
     id,
-    error: {
-      code: -32601,
-      message: `Method not found: ${method}`,
-    },
+    error: { code: -32601, message: `Method not found: ${method}` },
   };
 }
 
-function startMcpHostSupervisor() {
+/**
+ * 處理完整 MCP JSON-RPC 2.0 訊息（支援非同步 `tools/call`）。
+ */
+export async function handleMcpJsonRpcRequest(
+  msg,
+  { serverVersion = DEFAULT_FALLBACK_VERSION, loadTelemetryFn = defaultLoadTelemetry } = {}
+) {
+  if (!msg || typeof msg !== 'object') return null;
+  const hasId = Object.prototype.hasOwnProperty.call(msg, 'id') && msg.id !== undefined;
+  if (!hasId) return null;
+
+  const id = msg.id;
+  const method = String(msg.method || '');
+  if (method !== 'tools/call') {
+    return handleMcpJsonRpcMessage(msg, serverVersion);
+  }
+
+  const toolName = String(msg.params?.name || '').trim();
+  const toolArgs = msg.params?.arguments;
+  if (!toolName || !MCP_TOOL_DEFS.some((tool) => tool.name === toolName)) {
+    return {
+      jsonrpc: '2.0',
+      id,
+      error: { code: -32602, message: `Unknown tool: ${toolName || '(empty)'}` },
+    };
+  }
+
+  try {
+    const data = await executeReadOnlyMcpTool(toolName, toolArgs, { loadTelemetryFn });
+    return {
+      jsonrpc: '2.0',
+      id,
+      result: {
+        content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
+        structuredContent: data,
+        isError: false,
+      },
+    };
+  } catch (err) {
+    return {
+      jsonrpc: '2.0',
+      id,
+      result: {
+        content: [{ type: 'text', text: err?.message || 'Tool execution failed' }],
+        isError: true,
+      },
+    };
+  }
+}
+
+function startMcpServer() {
   const serverVersion = readMcpServerVersion();
   let shuttingDown = false;
-  let daemonChild = null;
-  let respawnTimer = null;
-  let rapidCrashCount = 0;
-  let lastSpawnMs = 0;
-
-  function spawnDaemon() {
-    if (shuttingDown) return;
-    lastSpawnMs = Date.now();
-    const child = spawn(process.execPath, [DAEMON_SCRIPT_PATH], {
-      cwd: PANEL_DIR,
-      windowsHide: true,
-      stdio: ['pipe', 'ignore', 'pipe'],
-      env: {
-        ...process.env,
-        USAGE_MONITOR_HOST_PPID: `${process.ppid || 0},${process.pid || 0}`,
-      },
-    });
-    daemonChild = child;
-
-    child.stderr?.on('data', (chunk) => {
-      try {
-        process.stderr.write(chunk);
-      } catch {
-        // 忽略日志转发异常
-      }
-    });
-
-    child.on('exit', (code) => {
-      if (daemonChild === child) {
-        daemonChild = null;
-      }
-      if (shuttingDown) return;
-
-      const ranDurationMs = Date.now() - lastSpawnMs;
-      let delayMs = code === 0 ? 120 : 350;
-      if (code !== 0 && ranDurationMs < 10_000) {
-        rapidCrashCount += 1;
-        delayMs = Math.min(30_000, 1000 * 2 ** Math.min(rapidCrashCount - 1, 5));
-      } else {
-        rapidCrashCount = 0;
-      }
-
-      if (respawnTimer) clearTimeout(respawnTimer);
-      respawnTimer = setTimeout(() => {
-        respawnTimer = null;
-        spawnDaemon();
-      }, delayMs);
-    });
-
-    child.on('error', () => {
-      // 交由 exit 回调或退避重试统一处理
-    });
-  }
-
-  function shutdownSupervisor() {
-    if (shuttingDown) return;
-    shuttingDown = true;
-    if (respawnTimer) {
-      clearTimeout(respawnTimer);
-      respawnTimer = null;
-    }
-    const child = daemonChild;
-    if (!child) {
-      process.exit(0);
-      return;
-    }
-    const forceExitTimer = setTimeout(() => {
-      try {
-        child.kill();
-      } catch {
-        // 忽略强杀异常
-      }
-      process.exit(0);
-    }, 1800);
-    forceExitTimer.unref?.();
-
-    child.once('exit', () => {
-      clearTimeout(forceExitTimer);
-      process.exit(0);
-    });
-
-    try {
-      child.stdin?.write('SHUTDOWN_DISPOSE\n');
-      child.stdin?.end();
-    } catch {
-      try {
-        child.kill();
-      } catch {
-        // 忽略异常
-      }
-      process.exit(0);
-    }
-  }
-
   let framingMode = 'line';
   let rawBuffer = Buffer.alloc(0);
 
@@ -218,17 +320,17 @@ function startMcpHostSupervisor() {
     }
   }
 
-  function dispatchParsedPayload(parsed, mode) {
+  async function dispatchParsedPayload(parsed, mode) {
     if (Array.isArray(parsed)) {
-      const batchOut = parsed
-        .map((item) => handleMcpJsonRpcMessage(item, serverVersion))
-        .filter(Boolean);
+      const batchOut = (
+        await Promise.all(parsed.map((item) => handleMcpJsonRpcRequest(item, { serverVersion })))
+      ).filter(Boolean);
       if (batchOut.length > 0) {
         writeJsonRpcResponse(batchOut, mode);
       }
       return;
     }
-    const response = handleMcpJsonRpcMessage(parsed, serverVersion);
+    const response = await handleMcpJsonRpcRequest(parsed, { serverVersion });
     if (response) {
       writeJsonRpcResponse(response, mode);
     }
@@ -258,9 +360,9 @@ function startMcpHostSupervisor() {
         const bodyStr = rawBuffer.subarray(headerEnd + sepLen, totalFrameLen).toString('utf8');
         rawBuffer = rawBuffer.subarray(totalFrameLen);
         try {
-          dispatchParsedPayload(JSON.parse(bodyStr), 'lsp');
+          void dispatchParsedPayload(JSON.parse(bodyStr), 'lsp');
         } catch {
-          // 忽略损坏帧
+          // 忽略損壞幀
         }
         continue;
       }
@@ -271,11 +373,17 @@ function startMcpHostSupervisor() {
       rawBuffer = rawBuffer.subarray(nlIdx + 1);
       if (!lineStr) continue;
       try {
-        dispatchParsedPayload(JSON.parse(lineStr), framingMode);
+        void dispatchParsedPayload(JSON.parse(lineStr), framingMode);
       } catch {
         // 忽略非 JSON 行
       }
     }
+  }
+
+  function shutdown() {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    process.exit(0);
   }
 
   process.stdin.on('data', (chunk) => {
@@ -284,17 +392,14 @@ function startMcpHostSupervisor() {
     drainInputBuffer();
   });
 
-  process.stdin.on('end', shutdownSupervisor);
-  process.stdin.on('close', shutdownSupervisor);
-  process.on('SIGTERM', shutdownSupervisor);
-  process.on('SIGINT', shutdownSupervisor);
+  process.stdin.on('end', shutdown);
+  process.stdin.on('close', shutdown);
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
   process.stdin.resume();
-
-  spawnDaemon();
 }
 
 const invokedPath = process.argv[1] ? resolve(process.argv[1]) : '';
 if (invokedPath && invokedPath === fileURLToPath(import.meta.url)) {
-  startMcpHostSupervisor();
+  startMcpServer();
 }
-

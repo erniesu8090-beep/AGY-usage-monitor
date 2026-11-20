@@ -222,7 +222,6 @@ async function verifyPluginJsSyntax(rootDir) {
   const nodeBin = process?.execPath || 'node';
   const filesToCheck = [
     join(rootDir, 'sidecars', 'panel', 'main.mjs'),
-    join(rootDir, 'sidecars', 'panel', 'bridge-daemon.mjs'),
     join(rootDir, 'sidecars', 'panel', 'mcp-entry.mjs'),
     join(rootDir, 'sidecars', 'panel', 'app.js'),
   ];

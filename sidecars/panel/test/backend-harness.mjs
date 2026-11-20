@@ -21,8 +21,6 @@ const BACKEND_MODULE_FILES = [
   '../shared/telemetry-display-rules.mjs',
   '../shared/window-bridge-protocol.mjs',
   '../backend/context-windows.mjs',
-  '../backend/account-oauth.mjs',
-  '../backend/account-switch.mjs',
   '../backend/http-helpers.mjs',
   '../backend/settings-schema.mjs',
   '../backend/config.mjs',
@@ -39,8 +37,6 @@ const BACKEND_MODULE_FILES = [
   '../backend/local-scanner.mjs',
   '../backend/usage-aggregator.mjs',
   '../backend/telemetry-builder.mjs',
-  '../backend/desktop-launcher-config.mjs',
-  '../backend/window-bridge.mjs',
   '../backend/api-actions.mjs',
   '../main.mjs',
 ];

@@ -972,19 +972,13 @@ test('post-compaction context preserves static channels + checkpoint summary, ca
   assert.match(stylesCss, /\.preview-capsule-bar\s*\{[^}]*"Google Sans Flex"/s);
 });
 
-test('P0 audit fixes: main/bridge-daemon import isolation, standalone lsAddr, dual-window stepRevision LRU, CORTEX_STEP_TYPE_FIND, preview i18n, and header render purity', async () => {
-  // 1. Static import isolation on main.mjs and bridge-daemon.mjs
+test('P0 audit fixes: main import isolation, standalone lsAddr, dual-window stepRevision LRU, CORTEX_STEP_TYPE_FIND, preview i18n, and header render purity', async () => {
+  // 1. Static import isolation on main.mjs
   const mainSrc = fs.readFileSync(new URL('../main.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(
     mainSrc,
     /^import\s+[\s\S]*?from\s+['"]\.\/backend\/(?:api-actions|config)\.mjs['"]/m,
     'main.mjs must not statically import api-actions.mjs or config.mjs in the host parent process'
-  );
-  const daemonSrc = fs.readFileSync(new URL('../bridge-daemon.mjs', import.meta.url), 'utf8');
-  assert.doesNotMatch(
-    daemonSrc,
-    /^import\s+[\s\S]*?from\s+['"]\.\/backend\/config\.mjs['"]/m,
-    'bridge-daemon.mjs must not statically import config.mjs before --standalone env overrides'
   );
 
   // 2. Dual-window alternating stepDetails='display' stepRevision cache hit + rebuild invalidation
@@ -1126,8 +1120,9 @@ test('P1 audit fixes: shared third-party pool & route single-source, pure frozen
 
   assert.equal(normalizeI18nLanguage('system'), 'auto');
   assert.equal(typeof isEquivalentTelemetry, 'function');
-  assert.equal(BRIDGE_API_ROUTE_DEFS.length, 10);
-  assert.ok(BRIDGE_API_ROUTE_DEFS.some((r) => r.path === '/api/bridge/relaunch'));
+  assert.equal(BRIDGE_API_ROUTE_DEFS.length, 7);
+  assert.ok(BRIDGE_API_ROUTE_DEFS.some((r) => r.path === '/api/telemetry'));
+  assert.equal(BRIDGE_API_ROUTE_DEFS.some((r) => r.path === '/api/bridge/relaunch'), false);
 
   // 1. Third-party pool parity across backend, CLI statusline, and frontend metricRegistry
   const h = backendHarness();

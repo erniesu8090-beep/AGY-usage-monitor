@@ -9,7 +9,6 @@
 import { randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import { BRIDGE_API_ROUTE_DEFS } from '../shared/window-bridge-protocol.mjs';
-import { handleAccountCredentialAction } from './account-switch.mjs';
 import { isLocalHostRequest, readLocalAsync } from './http-helpers.mjs';
 import { clearScannerRuntimeMemos } from './local-scanner.mjs';
 import {
@@ -44,17 +43,6 @@ import {
 } from './plugin-updater.mjs';
 import { getCloudStatus } from './pricing-catalog.mjs';
 import { buildTelemetryPayload } from './telemetry-builder.mjs';
-import {
-  ensureDesktopLaunchEntriesConfigured,
-  triggerDesktopHostRelaunch,
-} from './desktop-launcher-config.mjs';
-import {
-  ensureIdeRemoteDebuggingArgv,
-  notifyModelContextWindowsChanged,
-  notifyWindowOverlaySetting,
-  resolveDevToolsPortCandidates,
-  startDefaultWindowBridge,
-} from './window-bridge.mjs';
 import { ensureCliStatusLineConfigured } from './cli-statusline-config.mjs';
 
 export const bootBundleVersion = computeRuntimeCodeVersion();
@@ -288,16 +276,6 @@ export function executeSettingsAction(data) {
       body: JSON.stringify({ ok: false, error: 'Failed to persist settings' }),
     };
   }
-  const prevMountMode = normalizeWindowMountMode(
-    current.windowMountMode,
-    current.enableWindowOverlay
-  );
-  if (
-    updated.enableWindowOverlay !== (current.enableWindowOverlay !== false) ||
-    updated.windowMountMode !== prevMountMode
-  ) {
-    void notifyWindowOverlaySetting(updated.enableWindowOverlay);
-  }
   if ((updated.enableCliStatusLine !== false) !== (current.enableCliStatusLine !== false)) {
     ensureCliStatusLineConfigured({ enabled: updated.enableCliStatusLine !== false });
   }
@@ -355,7 +333,6 @@ export async function executeModelContextWindowAction(data) {
   if (!saveJson(SETTINGS_FILE, current)) {
     return respond(500, { error: 'Failed to persist model context window' });
   }
-  void notifyModelContextWindowsChanged();
   return respond(200, { modelContextWindows: current.modelContextWindows });
 }
 
@@ -370,18 +347,6 @@ export function executeResetSettingsAction() {
       headers: { 'Cache-Control': 'no-store' },
       body: JSON.stringify({ ok: false, error: 'Failed to reset settings' }),
     };
-  }
-  const prevMountMode = normalizeWindowMountMode(
-    current.windowMountMode,
-    current.enableWindowOverlay
-  );
-  if (
-    updated.enableWindowOverlay !== (current.enableWindowOverlay !== false) ||
-    updated.windowMountMode !== prevMountMode
-  ) {
-    void notifyWindowOverlaySetting(updated.enableWindowOverlay);
-  } else if (Object.keys(current.modelContextWindows).length) {
-    void notifyModelContextWindowsChanged();
   }
   if ((updated.enableCliStatusLine !== false) !== (current.enableCliStatusLine !== false)) {
     ensureCliStatusLineConfigured({ enabled: updated.enableCliStatusLine !== false });
@@ -448,30 +413,6 @@ export async function executePluginUpdateAction() {
   };
 }
 
-export async function executeAccountCredentialAction(data) {
-  const result = await handleAccountCredentialAction(data);
-  return {
-    status: 200,
-    contentType: 'application/json',
-    headers: { 'Cache-Control': 'no-store' },
-    body: JSON.stringify(result),
-  };
-}
-
-export async function executeBridgeRelaunchAction() {
-  ensureIdeRemoteDebuggingArgv({ enabled: true });
-  await ensureDesktopLaunchEntriesConfigured({ enabled: true }).catch(() => {});
-  const result = await triggerDesktopHostRelaunch({
-    stalePortFiles: resolveDevToolsPortCandidates(),
-  });
-  return {
-    status: result.ok ? 200 : Number(result.status || 500),
-    contentType: 'application/json',
-    headers: { 'Cache-Control': 'no-store' },
-    body: JSON.stringify(result),
-  };
-}
-
 const BRIDGE_ROUTE_LOOKUP = new Map(
   BRIDGE_API_ROUTE_DEFS.map((r) => [`${r.method}:${r.path}`, r.action])
 );
@@ -482,14 +423,7 @@ export async function dispatchBridgeApiRequest(pathname, method, data, opts = un
     case 'telemetry':
       return executeTelemetryAction(data, opts);
     case 'settings':
-      if (isPlainObject(data) && data.__bridgeAction === 'relaunch') {
-        return executeBridgeRelaunchAction();
-      }
       return executeSettingsAction(data);
-    case 'accounts_get':
-      return executeAccountCredentialAction();
-    case 'accounts_update':
-      return executeAccountCredentialAction(data);
     case 'context_window':
       return executeModelContextWindowAction(data);
     case 'settings_reset':
@@ -500,8 +434,6 @@ export async function dispatchBridgeApiRequest(pathname, method, data, opts = un
       return executeCloudSyncAction();
     case 'plugin_update':
       return executePluginUpdateAction();
-    case 'bridge_relaunch':
-      return executeBridgeRelaunchAction();
     default:
       return {
         status: 404,
@@ -512,7 +444,7 @@ export async function dispatchBridgeApiRequest(pathname, method, data, opts = un
 }
 
 /**
- * 启动进程级双栖窗口桥接器（兼容 Sidecar 环境与独立后台守护进程环境）。
+ * 啟動純原生 Sidecar 執行期環境（去侵入化版本：不啟動 CDP 橋接器或修改宿主設定）。
  *
  * @param {{ allowDynamicLs?: boolean, onRestart?: () => void }} [options]
  */
@@ -522,8 +454,6 @@ export function bootWindowBridgeRuntime({ allowDynamicLs = false, onRestart = nu
 
   ensureCliStatusLineConfigured({ enabled: loadSettings().enableCliStatusLine !== false });
 
-  const triggerRestart =
-    typeof onRestart === 'function' ? onRestart : () => scheduleSidecarRestart(150);
   if (typeof onRestart === 'function') {
     setSidecarRestartHandler(onRestart);
   }
@@ -540,12 +470,6 @@ export function bootWindowBridgeRuntime({ allowDynamicLs = false, onRestart = nu
       .catch(() => {});
   }
 
-  return startDefaultWindowBridge({
-    handleApiRequest: (pathname, method, data) =>
-      dispatchBridgeApiRequest(pathname, method, data, { onRestart: triggerRestart }),
-    readAssetFn: readLocalAsync,
-    bootBundleVersion,
-    onVersionDrift: triggerRestart,
-  });
+  return null;
 }
 

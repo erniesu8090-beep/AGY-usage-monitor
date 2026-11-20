@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "host": {
+    "usage-monitor": {
       "command": "node",
       "args": [
         "${PLUGIN_ROOT}/sidecars/panel/mcp-entry.mjs"

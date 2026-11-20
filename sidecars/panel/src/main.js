@@ -5,9 +5,7 @@
  */
 
 import { App } from './App.js';
-import { mountWindowOverlay } from './components/layout/WindowOverlayShell.js';
 import { applyAppearanceToRoot } from './core/appearance.js';
-import { isWindowOverlayMode } from './core/httpClient.js';
 import { setI18nLanguage } from './i18n/index.js';
 import { startAsyncTelemetryLoop, telemetryStore } from './store/telemetryStore.js';
 
@@ -40,10 +38,6 @@ async function bootstrapApp(mountTarget = document.getElementById('app-root')) {
 }
 
 function startEntry() {
-  if (isWindowOverlayMode()) {
-    mountWindowOverlay();
-    return;
-  }
   if (
     typeof window !== 'undefined' &&
     !window.sidecar?.fetch &&

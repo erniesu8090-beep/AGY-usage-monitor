@@ -355,7 +355,6 @@ export function computeRuntimeCodeVersion() {
     join(HERE, 'styles.css'),
     join(HERE, 'main.mjs'),
     join(HERE, 'standalone.mjs'),
-    join(HERE, 'bridge-daemon.mjs'),
     join(HERE, 'mcp-entry.mjs'),
     join(HERE, 'cli-statusline.mjs'),
     join(HERE, 'trajectory-metrics.mjs'),

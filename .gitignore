@@ -1,9 +1,7 @@
-.data/
-node_modules/
-plan/
-*.log
-*.dpapi
-.account-test-*
 .DS_Store
 Thumbs.db
+node_modules/
+sidecars/panel/.data/
+sidecars/panel/.account-test-*/
 *.exe
+待刪除資料夾/

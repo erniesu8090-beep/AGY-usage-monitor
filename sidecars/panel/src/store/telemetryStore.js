@@ -4,7 +4,7 @@
  */
 
 import { createReactiveStore } from '../core/reactive.js';
-import { callSidecarApi, getWindowBridgeConfig, isWindowOverlayMode } from '../core/httpClient.js';
+import { callSidecarApi, isWindowOverlayMode } from '../core/httpClient.js';
 import {
   formatAgentBadgeText,
   formatAgentLabel,
@@ -43,78 +43,10 @@ import {
   normalizeWindowMountMode,
   parseStepTokenComboSegments,
 } from '../../shared/settings-normalization.mjs';
-import { WINDOW_BRIDGE_ROUTE_KEY, readInjectedWindowBridge } from '../../shared/window-bridge-protocol.mjs';
 
 const CASCADE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/**
- * 在主窗口双栖模式下，提取当前正在浏览的会话 ID：
- * 1. 优先解析 Antigravity 2.0 路由路径 `/c/<uuid>`；
- * 2. 在 Antigravity IDE (`workbench.html`) 无路径路由时，回退读取活跃对话视图
- *    `[data-testid="conversation-view"][data-cascade-id]` 或侧栏选中项。
- *
- * @returns {string}
- */
 export function extractHostRouteCascadeId() {
-  if (typeof window === 'undefined' || !isWindowOverlayMode()) return '';
-  const pathname = String(window.location?.pathname || '');
-  const m = pathname.match(/^\/c\/([a-f0-9-]{36})(?:\/|$)/i);
-  if (m && CASCADE_UUID_RE.test(m[1])) {
-    return m[1];
-  }
-  const extBridgeRouteId = String(readInjectedWindowBridge()?.[WINDOW_BRIDGE_ROUTE_KEY] || '').trim();
-  if (extBridgeRouteId && CASCADE_UUID_RE.test(extBridgeRouteId)) {
-    return extBridgeRouteId;
-  }
-  try {
-    if (typeof document === 'undefined' || typeof document.querySelector !== 'function') {
-      return '';
-    }
-    const selectedRow = document.querySelector(
-      '[data-testid^="conversation-row-"][data-selected="true"][data-cascade-id]'
-    );
-    const selectedRowId = String(selectedRow?.getAttribute?.('data-cascade-id') || '').trim();
-
-    if (typeof document.querySelectorAll === 'function') {
-      const views = document.querySelectorAll('[data-testid="conversation-view"][data-cascade-id]');
-      const visibleIds = [];
-      let focusedId = '';
-      const activeEl = document.activeElement || null;
-      for (const viewEl of views) {
-        const cid = String(viewEl?.getAttribute?.('data-cascade-id') || '').trim();
-        if (!CASCADE_UUID_RE.test(cid)) continue;
-        if (viewEl.hasAttribute?.('hidden')) continue;
-        if (viewEl.getBoundingClientRect) {
-          const r = viewEl.getBoundingClientRect();
-          if (r.width <= 0 && r.height <= 0) continue;
-        }
-        visibleIds.push(cid);
-        if (activeEl && viewEl.contains?.(activeEl)) {
-          focusedId = cid;
-        }
-      }
-      if (focusedId) return focusedId;
-      if (
-        selectedRowId &&
-        CASCADE_UUID_RE.test(selectedRowId) &&
-        visibleIds.some((id) => id.toLowerCase() === selectedRowId.toLowerCase())
-      ) {
-        return selectedRowId;
-      }
-      if (visibleIds.length > 0) return visibleIds[0];
-    }
-
-    const singleView = document.querySelector('[data-testid="conversation-view"][data-cascade-id]');
-    const singleViewId = String(singleView?.getAttribute?.('data-cascade-id') || '').trim();
-    if (CASCADE_UUID_RE.test(singleViewId)) {
-      return singleViewId;
-    }
-    if (CASCADE_UUID_RE.test(selectedRowId)) {
-      return selectedRowId;
-    }
-  } catch {
-    // 忽略宿主 DOM 查询异常
-  }
   return '';
 }
 
@@ -738,12 +670,11 @@ export async function fetchTelemetry({ force = false } = {}) {
     return requestTelemetry(params, true);
   }
   const query = params.toString();
-  const bridge = overlay ? getWindowBridgeConfig() : null;
   const existing = inFlightTelemetryPoll;
-  if (existing?.query === query && existing.port === bridge?.port && existing.token === bridge?.token) {
+  if (existing?.query === query) {
     return existing.promise;
   }
-  const poll = { query, port: bridge?.port, token: bridge?.token, promise: null };
+  const poll = { query, promise: null };
   poll.promise = requestTelemetry(params, false).finally(() => {
     if (inFlightTelemetryPoll === poll) inFlightTelemetryPoll = null;
   });
@@ -1013,18 +944,6 @@ export async function triggerCloudSync() {
   return res;
 }
 
-export async function triggerBridgeHostRelaunch() {
-  try {
-    return await callSidecarApi('/api/bridge/relaunch', { method: 'POST', body: {} });
-  } catch {
-    // 兼容热更新后常驻父进程 main.mjs 尚未重注册新路由的场景，平滑回退至既有 POST /api/settings 通道转发至最新 Worker
-    return callSidecarApi('/api/settings', {
-      method: 'POST',
-      body: { __bridgeAction: 'relaunch' },
-    });
-  }
-}
-
 export async function triggerPluginUpdate() {
   const res = await callSidecarApi('/api/plugin-update', { method: 'POST', body: {} });
   if (res?.ok && res?.restarting) {
@@ -1227,7 +1146,7 @@ export function resolveScopedConversation(
  * @returns {boolean}
  */
 export function isMacHostPlatform(telemetry) {
-  const p = String(telemetry?.hostPlatform || readInjectedWindowBridge()?.platform || '')
+  const p = String(telemetry?.hostPlatform || '')
     .trim()
     .toLowerCase();
   if (p) return p === 'darwin';
