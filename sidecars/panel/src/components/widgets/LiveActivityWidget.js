@@ -23,7 +23,6 @@ import {
 import { createSvgIcon } from '../../icons/SvgIcon.js';
 import { getEffectiveLocale, t } from '../../i18n/index.js';
 import {
-  extractHostRouteCascadeId,
   fetchTelemetry,
   resolveScopedConversation,
   telemetryStore,
@@ -338,7 +337,7 @@ export const LiveActivityWidget = defineComponent({
 
       const locale = getEffectiveLocale();
       const hostRouteLower = showSessionExtras
-        ? String(hostRouteConversationId || extractHostRouteCascadeId() || '').toLowerCase()
+        ? String(hostRouteConversationId || '').toLowerCase()
         : '';
 
       const activeTimerKeys = new Set();

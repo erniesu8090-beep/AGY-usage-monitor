@@ -4,7 +4,7 @@
  */
 
 import { createReactiveStore } from '../core/reactive.js';
-import { callSidecarApi, isWindowOverlayMode } from '../core/httpClient.js';
+import { callSidecarApi } from '../core/httpClient.js';
 import {
   formatAgentBadgeText,
   formatAgentLabel,
@@ -15,19 +15,11 @@ import {
 import { normalizeI18nLanguage, t } from '../i18n/index.js';
 import { normalizeClientFontScale, normalizeClientThemeAccent } from '../core/appearance.js';
 import {
-  DEFAULT_HOVER_MODULES,
   DEFAULT_OVERVIEW_METRICS,
   DEFAULT_OVERVIEW_MODULES,
-  DEFAULT_POPOVER_WIDTH,
   DEFAULT_STEP_TABLE_COLUMNS,
   DEFAULT_STEP_TOKEN_COMBO_FORMAT,
   DEFAULT_TOPBAR_SLOTS,
-  MAX_POPOVER_WIDTH,
-  MIN_POPOVER_WIDTH,
-  OVERVIEW_METRIC_KEYS,
-  OVERVIEW_MODULE_KEYS,
-  STEP_TABLE_COLUMN_KEYS,
-  TOPBAR_SLOT_KEYS,
   normalizeHoverModules,
   normalizeModelDisplayMode,
   normalizeOrchestratorIdMode,
@@ -44,18 +36,11 @@ import {
   parseStepTokenComboSegments,
 } from '../../shared/settings-normalization.mjs';
 
-const CASCADE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export function extractHostRouteCascadeId() {
-  return '';
-}
-
 const initialConversationId =
   (typeof window !== 'undefined' && window.sidecar?.conversationId) || '';
 
 export const telemetryStore = createReactiveStore({
   selectedConversationId: initialConversationId,
-  hostRouteConversationId: extractHostRouteCascadeId(),
   selectedTimeRange: 'today',
   customStartMs: Date.now() - 24 * 3600 * 1000,
   customEndMs: Date.now(),
@@ -76,33 +61,21 @@ let loopActive = false;
 let loopIntervalMs = 2000;
 let loopTickFn = null;
 
-export const CLIENT_TOPBAR_SLOT_KEYS = TOPBAR_SLOT_KEYS;
 export const DEFAULT_CLIENT_TOPBAR_SLOTS = DEFAULT_TOPBAR_SLOTS;
-export const CLIENT_OVERVIEW_MODULE_KEYS = OVERVIEW_MODULE_KEYS;
 export const DEFAULT_CLIENT_OVERVIEW_MODULES = DEFAULT_OVERVIEW_MODULES;
-export const DEFAULT_CLIENT_HOVER_MODULES = DEFAULT_HOVER_MODULES;
-export const CLIENT_OVERVIEW_METRIC_KEYS = OVERVIEW_METRIC_KEYS;
 export const DEFAULT_CLIENT_OVERVIEW_METRICS = DEFAULT_OVERVIEW_METRICS;
-export const CLIENT_STEP_COLUMN_KEYS = STEP_TABLE_COLUMN_KEYS;
 export const DEFAULT_CLIENT_STEP_COLUMNS = DEFAULT_STEP_TABLE_COLUMNS;
 export const DEFAULT_CLIENT_STEP_TOKEN_COMBO_FORMAT = DEFAULT_STEP_TOKEN_COMBO_FORMAT;
-export const MIN_CLIENT_POPOVER_WIDTH = MIN_POPOVER_WIDTH;
-export const MAX_CLIENT_POPOVER_WIDTH = MAX_POPOVER_WIDTH;
-export const DEFAULT_CLIENT_POPOVER_WIDTH = DEFAULT_POPOVER_WIDTH;
 
 export const parseClientStepTokenComboSegments = parseStepTokenComboSegments;
 export const normalizeClientStepTokenComboFormat = normalizeStepTokenComboFormat;
-export const normalizeClientPopoverWidthMode = normalizePopoverWidthMode;
-export const normalizeClientPopoverWidth = normalizePopoverWidth;
 export const normalizeClientModelDisplayMode = normalizeModelDisplayMode;
 export const normalizeClientTopbarSlots = normalizeTopbarCapsuleSlots;
-export const normalizeClientHoverModules = normalizeHoverModules;
 export const normalizeClientOverviewModules = normalizeOverviewModules;
 export const normalizeClientOverviewMetrics = normalizeOverviewMetrics;
 export const normalizeClientStepColumns = normalizeStepTableColumns;
 export const normalizeClientUpdateMode = normalizePluginUpdateMode;
 export const normalizeClientOrchestratorIdMode = normalizeOrchestratorIdMode;
-export const normalizeClientWindowMountMode = normalizeWindowMountMode;
 
 export function isEquivalentTelemetry(prev, next) {
   if (!prev || !next) return false;
@@ -167,8 +140,8 @@ export function isEquivalentTelemetry(prev, next) {
   if ((pSet?.pluginUpdateMode ?? '') !== (nSet?.pluginUpdateMode ?? '')) return false;
   if (pSet?.autoUpdatePlugin !== nSet?.autoUpdatePlugin) return false;
   if (
-    normalizeClientWindowMountMode(pSet?.windowMountMode, pSet?.enableWindowOverlay) !==
-    normalizeClientWindowMountMode(nSet?.windowMountMode, nSet?.enableWindowOverlay)
+    normalizeWindowMountMode(pSet?.windowMountMode, pSet?.enableWindowOverlay) !==
+    normalizeWindowMountMode(nSet?.windowMountMode, nSet?.enableWindowOverlay)
   ) {
     return false;
   }
@@ -641,20 +614,8 @@ export async function fetchTelemetry({ force = false } = {}) {
     return telemetryStore.getState().telemetry;
   }
 
-  const overlay = isWindowOverlayMode();
-  if (overlay) {
-    const st = telemetryStore.getState();
-    const liveRouteId = extractHostRouteCascadeId();
-    if (liveRouteId !== st.hostRouteConversationId) {
-      const patch = { hostRouteConversationId: liveRouteId };
-      if (liveRouteId && st.selectedConversationId && st.selectedConversationId !== liveRouteId) {
-        patch.selectedConversationId = '';
-      }
-      telemetryStore.setState(patch);
-    }
-  }
   const current = telemetryStore.getState();
-  const effectiveConvId = current.selectedConversationId || current.hostRouteConversationId || '';
+  const effectiveConvId = current.selectedConversationId || '';
   const params = new URLSearchParams();
   if (effectiveConvId) params.set('conversationId', effectiveConvId);
   if (current.selectedTimeRange) params.set('range', current.selectedTimeRange);
@@ -734,7 +695,6 @@ async function requestTelemetry(params, force) {
     if (payload?.uiBundleVersion) {
       if (activeBundleVersion && activeBundleVersion !== payload.uiBundleVersion) {
         if (
-          !isWindowOverlayMode() &&
           typeof window !== 'undefined' &&
           typeof window.location?.reload === 'function'
         ) {
@@ -825,7 +785,7 @@ export async function saveSettingsPatch(patch) {
     safePatch.topbarCapsuleSlots = normalizeClientTopbarSlots(safePatch.topbarCapsuleSlots);
   }
   if (Object.prototype.hasOwnProperty.call(safePatch, 'hoverModules')) {
-    safePatch.hoverModules = normalizeClientHoverModules(safePatch.hoverModules);
+    safePatch.hoverModules = normalizeHoverModules(safePatch.hoverModules);
   }
   if (Object.prototype.hasOwnProperty.call(safePatch, 'overviewModules')) {
     safePatch.overviewModules = normalizeClientOverviewModules(safePatch.overviewModules);
@@ -853,10 +813,10 @@ export async function saveSettingsPatch(patch) {
     safePatch.modelDisplayMode = safePatch.showUpstreamModel ? 'upstream' : 'short';
   }
   if (Object.prototype.hasOwnProperty.call(safePatch, 'popoverWidthMode')) {
-    safePatch.popoverWidthMode = normalizeClientPopoverWidthMode(safePatch.popoverWidthMode);
+    safePatch.popoverWidthMode = normalizePopoverWidthMode(safePatch.popoverWidthMode);
   }
   if (Object.prototype.hasOwnProperty.call(safePatch, 'popoverWidth')) {
-    safePatch.popoverWidth = normalizeClientPopoverWidth(safePatch.popoverWidth);
+    safePatch.popoverWidth = normalizePopoverWidth(safePatch.popoverWidth);
   }
   if (Object.prototype.hasOwnProperty.call(safePatch, 'contextWindowRiskAccepted')) {
     safePatch.contextWindowRiskAccepted = Boolean(safePatch.contextWindowRiskAccepted);
@@ -870,7 +830,7 @@ export async function saveSettingsPatch(patch) {
       Number.isInteger(numPort) && numPort >= 1024 && numPort <= 65535 ? numPort : 0;
   }
   if (Object.prototype.hasOwnProperty.call(safePatch, 'windowMountMode')) {
-    const normMount = normalizeClientWindowMountMode(
+    const normMount = normalizeWindowMountMode(
       safePatch.windowMountMode,
       safePatch.enableWindowOverlay
     );
@@ -898,23 +858,6 @@ export async function saveSettingsPatch(patch) {
     throw err;
   }
   await fetchTelemetry({ force: true });
-}
-
-export async function saveModelContextWindow(modelId, option) {
-  const result = await callSidecarApi('/api/context-window', {
-    method: 'POST',
-    body: { modelId, option },
-  });
-  const telemetry = telemetryStore.getState().telemetry;
-  if (telemetry?.settings) {
-    telemetryStore.setState({
-      telemetry: {
-        ...telemetry,
-        settings: { ...telemetry.settings, modelContextWindows: result.modelContextWindows },
-      },
-    });
-  }
-  return result.modelContextWindows;
 }
 
 export async function resetAllSettings() {
@@ -949,7 +892,6 @@ export async function triggerPluginUpdate() {
   if (res?.ok && res?.restarting) {
     await new Promise((r) => setTimeout(r, 1100));
     if (
-      !isWindowOverlayMode() &&
       typeof window !== 'undefined' &&
       typeof window.location?.reload === 'function'
     ) {
@@ -966,12 +908,7 @@ export function startAsyncTelemetryLoop(intervalMs = 2000) {
   loopActive = true;
   loopIntervalMs = intervalMs;
 
-  const resolveNextDelay = () => {
-    if (isWindowOverlayMode() && typeof document !== 'undefined' && document.hidden) {
-      return Math.max(loopIntervalMs, 8000);
-    }
-    return loopIntervalMs;
-  };
+  const resolveNextDelay = () => loopIntervalMs;
 
   const tick = async () => {
     pollTimer = null;
@@ -1137,22 +1074,4 @@ export function resolveScopedConversation(
     scopedConv,
     ctxAgent,
   };
-}
-
-/**
- * 判断宿主系统是否为 macOS (`darwin`)：优先读取后端遥测或双栖桥接注入的 `platform`，首帧缺省时回退 UA/平台标识。
- *
- * @param {Record<string, any>|null|undefined} telemetry
- * @returns {boolean}
- */
-export function isMacHostPlatform(telemetry) {
-  const p = String(telemetry?.hostPlatform || '')
-    .trim()
-    .toLowerCase();
-  if (p) return p === 'darwin';
-  if (typeof navigator !== 'undefined') {
-    const ua = String(navigator.platform || navigator.userAgent || '');
-    return /\b(?:mac|darwin)\b|macintosh|mac\s*os/i.test(ua);
-  }
-  return false;
 }

@@ -138,13 +138,6 @@ namespace AntigravityTaskbarMonitor
                 {
                     return string.Format(CultureInfo.InvariantCulture, "http://127.0.0.1:{0}/", standalonePort);
                 }
-
-                string leaseFile = Path.Combine(dataDirs[i], "data", "window-bridge-lease.json");
-                int bridgePort = ReadIntFieldFromJsonFile(leaseFile, "bridgePort");
-                if (bridgePort >= 1024 && bridgePort <= 65535)
-                {
-                    return string.Format(CultureInfo.InvariantCulture, "http://127.0.0.1:{0}/", bridgePort);
-                }
             }
             return null;
         }

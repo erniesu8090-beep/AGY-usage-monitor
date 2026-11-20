@@ -16,28 +16,63 @@ if (Test-Path -LiteralPath $targetDir) {
     $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
     $backupDir = Join-Path $backupRoot ("usage-monitor_" + $stamp)
     Write-Host "[Backup] Existing plugin found -> $backupDir"
-    Move-Item -LiteralPath $targetDir -Destination $backupDir -Force
+    # Copy-Item 採唯讀複製備份，避免在 Sidecar 執行中因 Move-Item 鎖檔造成半殘搬移
+    Copy-Item -LiteralPath $targetDir -Destination $backupDir -Recurse -Force
 }
 
 New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
 
-$excludeTop = @('.git', '.data', 'node_modules')
-Get-ChildItem -LiteralPath $sourceDir -Force | ForEach-Object {
-    $name = $_.Name
-    if ($excludeTop -contains $name) { return }
-    if ($name -like '.*-test-*') { return }
-    if ($name -match '[\u4e00-\u9fff]') {
-        # Skip Chinese staging folders such as 待刪除資料夾
-        return
+$excludeDirs = @('.git', '.data', 'node_modules')
+
+function Copy-DirectoryMerge {
+    param(
+        [Parameter(Mandatory = $true)][string]$Src,
+        [Parameter(Mandatory = $true)][string]$Dst
+    )
+    if (-not (Test-Path -LiteralPath $Dst)) {
+        New-Item -ItemType Directory -Path $Dst -Force | Out-Null
     }
-    $dest = Join-Path $targetDir $name
-    Copy-Item -LiteralPath $_.FullName -Destination $dest -Recurse -Force
+    Get-ChildItem -LiteralPath $Src -Force | ForEach-Object {
+        $name = $_.Name
+        if ($_.PSIsContainer) {
+            if ($excludeDirs -contains $name) { return }
+            if ($name -like '.*-test-*') { return }
+            if ($name -match '[\u4e00-\u9fff]') {
+                # 略過中文暫存資料夾（例如：待刪除資料夾）
+                return
+            }
+            Copy-DirectoryMerge -Src $_.FullName -Dst (Join-Path $Dst $name)
+        } else {
+            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $Dst $name) -Force
+        }
+    }
 }
 
-# Clean up any runtime/test artifacts inside deployed plugin
+try {
+    Copy-DirectoryMerge -Src $sourceDir -Dst $targetDir
+} catch {
+    Write-Host "[WARN] 部分檔案複製受限，可能正被 Antigravity 或工作列監控條鎖定。"
+    Write-Host "       請先關閉 Antigravity 與 AntigravityTaskbarMonitor.exe 後再重新執行本腳本。"
+    throw
+}
+
+# 清理部署目標內不應留存的執行期暫存、已廢棄舊檔與誤建的嵌套目錄
 $cleanupPaths = @(
+    (Join-Path $targetDir 'assets\assets'),
+    (Join-Path $targetDir 'sidecars\sidecars'),
+    (Join-Path $targetDir 'skills\skills'),
+    (Join-Path $targetDir 'tools\tools'),
     (Join-Path $targetDir 'sidecars\panel\.data'),
-    (Join-Path $targetDir 'sidecars\panel\node_modules')
+    (Join-Path $targetDir 'sidecars\panel\node_modules'),
+    (Join-Path $targetDir 'sidecars\panel\shared\window-bridge-protocol.mjs'),
+    (Join-Path $targetDir 'sidecars\panel\backend\window-bridge.mjs'),
+    (Join-Path $targetDir 'sidecars\panel\backend\desktop-launcher-config.mjs'),
+    (Join-Path $targetDir 'sidecars\panel\backend\account-oauth.mjs'),
+    (Join-Path $targetDir 'sidecars\panel\backend\account-switch.mjs'),
+    (Join-Path $targetDir 'sidecars\panel\backend\account-credentials.ps1'),
+    (Join-Path $targetDir 'sidecars\panel\bridge-daemon.mjs'),
+    (Join-Path $targetDir 'assets\ide-preview.png'),
+    (Join-Path $targetDir 'sidecars\panel\src\components\ui\CustomNumberInput.js')
 )
 foreach ($p in $cleanupPaths) {
     if (Test-Path -LiteralPath $p) {

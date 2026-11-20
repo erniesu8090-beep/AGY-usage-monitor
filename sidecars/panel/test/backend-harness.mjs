@@ -19,7 +19,7 @@ const DEFAULT_BUNDLED_CATALOG = {
 const BACKEND_MODULE_FILES = [
   '../shared/settings-normalization.mjs',
   '../shared/telemetry-display-rules.mjs',
-  '../shared/window-bridge-protocol.mjs',
+  '../shared/api-routes.mjs',
   '../backend/context-windows.mjs',
   '../backend/http-helpers.mjs',
   '../backend/settings-schema.mjs',

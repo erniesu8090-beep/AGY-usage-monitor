@@ -162,7 +162,7 @@ export { normalizeModelDisplayMode };
  * @param {string} rawText
  * @returns {string}
  */
-export function stripVendorModelPrefix(rawText) {
+function stripVendorModelPrefix(rawText) {
   return String(rawText || '')
     .trim()
     .replace(/^(?:gemini|claude|gpt)-(?=.+)/i, '');

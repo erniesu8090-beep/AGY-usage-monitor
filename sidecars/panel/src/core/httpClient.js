@@ -6,14 +6,6 @@
 const inFlightGets = new Map();
 const activeControllers = new Map();
 
-export function getWindowBridgeConfig() {
-  return null;
-}
-
-export function isWindowOverlayMode() {
-  return false;
-}
-
 export async function callSidecarApi(path, { method = 'GET', body, abortKey = '' } = {}) {
   const upperMethod = method.toUpperCase();
   const dedupKey = upperMethod === 'GET' && !abortKey ? path : '';

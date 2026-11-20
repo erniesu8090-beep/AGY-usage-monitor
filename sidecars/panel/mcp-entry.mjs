@@ -129,6 +129,8 @@ async function defaultLoadTelemetry({ conversationId = '', force = false, range 
   return buildTelemetryPayload(conversationId, Boolean(force), { range, startMs, endMs });
 }
 
+const UI_PANEL_HINT = 'sidecar://usage-monitor/panel/';
+
 function summarizeQuotaStatus(payload) {
   const quotas = payload?.quotas || {};
   return {
@@ -137,6 +139,7 @@ function summarizeQuotaStatus(payload) {
     activePool: quotas.activePool || null,
     pools: Array.isArray(quotas.pools) ? quotas.pools : [],
     weekly: quotas.weekly || null,
+    uiPanelHint: UI_PANEL_HINT,
   };
 }
 
@@ -173,6 +176,7 @@ function summarizeConversationUsage(payload, { includeSteps = false, stepLimit =
         ? active.modelBreakdown
         : [],
     ...(includeSteps ? { recentSteps: rawSteps.slice(-limit) } : {}),
+    uiPanelHint: UI_PANEL_HINT,
   };
 }
 
@@ -186,6 +190,7 @@ function summarizeUsageOverview(payload) {
     sourcesBreakdown: Array.isArray(cons.sourcesBreakdown) ? cons.sourcesBreakdown : [],
     modelBreakdown: Array.isArray(payload?.modelBreakdown) ? payload.modelBreakdown : [],
     conversationsCount: Array.isArray(payload?.conversations) ? payload.conversations.length : 0,
+    uiPanelHint: UI_PANEL_HINT,
   };
 }
 

@@ -38,5 +38,16 @@ else
   find "${TARGET_DIR}/sidecars/panel" -maxdepth 1 -type d -name '.*-test-*' -exec rm -rf {} + 2>/dev/null || true
 fi
 
+rm -rf \
+  "${TARGET_DIR}/sidecars/panel/shared/window-bridge-protocol.mjs" \
+  "${TARGET_DIR}/sidecars/panel/backend/window-bridge.mjs" \
+  "${TARGET_DIR}/sidecars/panel/backend/desktop-launcher-config.mjs" \
+  "${TARGET_DIR}/sidecars/panel/backend/account-oauth.mjs" \
+  "${TARGET_DIR}/sidecars/panel/backend/account-switch.mjs" \
+  "${TARGET_DIR}/sidecars/panel/backend/account-credentials.ps1" \
+  "${TARGET_DIR}/sidecars/panel/bridge-daemon.mjs" \
+  "${TARGET_DIR}/assets/ide-preview.png" \
+  "${TARGET_DIR}/sidecars/panel/src/components/ui/CustomNumberInput.js"
+
 echo "[OK] Deployed usage-monitor to: ${TARGET_DIR}"
 echo "Next: Restart or reload Antigravity and enable 'usage-monitor' in Customizations -> Installed."

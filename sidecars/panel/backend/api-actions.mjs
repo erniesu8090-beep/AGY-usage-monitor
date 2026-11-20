@@ -8,7 +8,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
-import { BRIDGE_API_ROUTE_DEFS } from '../shared/window-bridge-protocol.mjs';
+import { PANEL_API_ROUTE_DEFS } from '../shared/api-routes.mjs';
 import { isLocalHostRequest, readLocalAsync } from './http-helpers.mjs';
 import { clearScannerRuntimeMemos } from './local-scanner.mjs';
 import {
@@ -414,7 +414,7 @@ export async function executePluginUpdateAction() {
 }
 
 const BRIDGE_ROUTE_LOOKUP = new Map(
-  BRIDGE_API_ROUTE_DEFS.map((r) => [`${r.method}:${r.path}`, r.action])
+  PANEL_API_ROUTE_DEFS.map((r) => [`${r.method}:${r.path}`, r.action])
 );
 
 export async function dispatchBridgeApiRequest(pathname, method, data, opts = undefined) {

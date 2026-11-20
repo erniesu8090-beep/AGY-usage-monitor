@@ -14,14 +14,14 @@ export const THEME_ACCENT_PRESETS = Object.freeze([
   { key: 'rose', labelKey: 'settings.gen.accentRose', cssColor: 'hsl(346 78% 54%)' },
 ]);
 
-export const FONT_SCALE_FACTORS = Object.freeze({
+const FONT_SCALE_FACTORS = Object.freeze({
   sm: 0.92,
   md: 1,
   lg: 1.14,
   xl: 1.28,
 });
 
-export const PANEL_SCALE_FACTORS = Object.freeze({
+const PANEL_SCALE_FACTORS = Object.freeze({
   sm: 1,
   md: 1,
   lg: 1.09,

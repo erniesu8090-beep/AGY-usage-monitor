@@ -712,9 +712,13 @@ function scaleBucketsExact(buckets, keys, targetTotal) {
 return { THIRD_PARTY_POOL_RE, isThirdPartyPoolText, classifySpeedTier, classifyCacheTier, classifyStepCostTier, classifyTtftTier, formatCompactTokens, formatCompactCapsuleCost, formatCompactCapsuleTtft, resolveCapsuleQuotaSlotPct, scaleBucketsExact };
 })();
 
-// --- shared/window-bridge-protocol.mjs ---
-const { BRIDGE_API_ROUTE_DEFS, BRIDGE_API_PATHS } = (() => {
-const BRIDGE_API_ROUTE_DEFS = Object.freeze([
+// --- shared/api-routes.mjs ---
+const { PANEL_API_ROUTE_DEFS } = (() => {
+/**
+ * @fileoverview 原生 Sidecar 面板與獨立 Web 伺服器共用的 API 路由清單。
+ */
+
+const PANEL_API_ROUTE_DEFS = Object.freeze([
   Object.freeze({ path: '/api/telemetry', method: 'GET', action: 'telemetry' }),
   Object.freeze({ path: '/api/settings', method: 'POST', action: 'settings' }),
   Object.freeze({ path: '/api/context-window', method: 'POST', action: 'context_window' }),
@@ -723,9 +727,7 @@ const BRIDGE_API_ROUTE_DEFS = Object.freeze([
   Object.freeze({ path: '/api/cloud-sync', method: 'POST', action: 'cloud_sync' }),
   Object.freeze({ path: '/api/plugin-update', method: 'POST', action: 'plugin_update' }),
 ]);
-
-const BRIDGE_API_PATHS = Object.freeze(BRIDGE_API_ROUTE_DEFS.map((r) => r.path));
-return { BRIDGE_API_ROUTE_DEFS, BRIDGE_API_PATHS };
+return { PANEL_API_ROUTE_DEFS };
 })();
 
 // --- src/icons/svgRegistry.js ---
@@ -1076,32 +1078,11 @@ const I18N_MESSAGES_ZH_CN = Object.freeze({
   'fmt.selectPlaceholder': '請選擇',
 
   // Capsule & Multi-Session Overlay
-  'capsule.ariaMonitor': '用量與速度監控',
-  'capsule.ariaMulti': '多對話即時資訊',
-  'capsule.multiZero': '0 執行中',
-  'capsule.multiRunning': '{count} 執行中',
-  'capsule.multiRunningWithSubs': '{count} 執行 · {subs} 子',
   'capsule.tpsRunning': '生成中',
   'capsule.tpsIdle': '待命',
   'capsule.quotaLeft': '餘 {pct}%',
   'capsule.quotaUnknown': '餘 --%',
-  'capsule.newVersion': '新版本',
   'capsule.updating': '更新中…',
-  'capsule.ariaUpdateTitle': '發現新版本，點擊立即更新',
-  'capsule.hoverNewVer': '發現新版本 v{ver}',
-  'capsule.hoverNewVerGeneric': '發現新版本可用',
-  'capsule.hoverUpdateHintTopbar': '點擊頂欄 v{ver} 即可更新',
-  'capsule.hoverUpdateHintComposer': '點擊版本膠囊 v{ver} 即可更新',
-  'capsule.hoverUpdateHintTopbarGeneric': '點擊頂欄版本膠囊即可更新',
-  'capsule.hoverUpdateHintComposerGeneric': '點擊版本膠囊即可更新',
-  'multi.title': '即時執行對話',
-  'multi.ariaDialog': '多對話即時資訊面板',
-  'multi.pinned': '已固定',
-  'multi.loading': '讀取中...',
-  'multi.empty': '目前尚無線上執行的對話',
-  'multi.allIdle': '全部待命',
-  'multi.metaWithSubs': '{main} 主對話 · {subs} 子代理執行中',
-  'multi.metaMainOnly': '{main} 個對話執行中',
   'multi.hereTag': '本視窗',
   'multi.inspectSessionTitle': '點擊在監控面板中檢視對話：{title}',
 
@@ -1326,55 +1307,8 @@ const I18N_MESSAGES_ZH_CN = Object.freeze({
   // Preferences (3-Tab Modular Settings)
   'settings.subTab.general': '一般',
   'settings.subTab.structure': '結構',
-  'settings.subTab.account': '帳號',
   'settings.subTab.other': '其他',
   'settings.subTab.aria': '偏好設定分類切換',
-  'settings.account.current': '目前帳號',
-  'settings.account.signedOut': '未登入',
-  'settings.account.unknown': '暫未取得帳號狀態',
-  'settings.account.email': '帳號信箱',
-  'settings.account.credential': 'OAuth 憑證',
-  'settings.account.importHint': '貼上 Antigravity 的重新整理權杖或含 refresh_token 的 OAuth JSON。外掛會驗證帳號信箱，並於本機加密儲存。',
-  'settings.account.save': '匯入憑證',
-  'settings.account.capture': '儲存目前憑證',
-  'settings.account.reload': '重新整理列表',
-  'settings.account.switch': '切換',
-  'settings.account.remove': '移除',
-  'settings.account.active': '目前使用',
-  'settings.account.written': '憑證已寫入',
-  'settings.account.pending': '已寫入 {email} 的憑證，等待主程式更新。如果一直未更新，請重開目前的 Antigravity。',
-  'settings.account.savedCredentials': '已儲存的憑證',
-  'settings.account.empty': '尚無已儲存的憑證。',
-  'settings.account.loading': '正在讀取已儲存的憑證…',
-  'settings.account.saved': '憑證已儲存。',
-  'settings.account.removed': '已移除儲存的憑證。',
-  'settings.account.switched': '已切換帳號，正在重新整理目前額度。',
-  'settings.account.switching': '正在替換憑證並確認主程式帳號…',
-  'settings.account.verifying': '正在驗證憑證所屬帳號…',
-  'settings.account.loadQuota': '查額度',
-  'settings.account.loadingQuota': '正在查詢此憑證的額度…',
-  'settings.account.emptyCredentialQuota': '這個帳號尚無可顯示的額度池。',
-  'settings.account.quota': '額度池剩餘',
-  'settings.account.quota5h': '5 小時 {percent}%',
-  'settings.account.quotaWeekly': '每週 {percent}%',
-  'settings.account.noQuota': '暫未取得目前帳號的額度池。',
-  'settings.account.quotaStale': '額度重新整理失敗，顯示的是目前帳號上次取得的資料。',
-  'settings.account.unsupported': '憑證切換目前支援 Windows 上的 Antigravity 共享登入。',
-  'settings.account.invalidEmail': '請先選擇一個已儲存的帳號。',
-  'settings.account.invalidCredential': '請輸入有效的 Antigravity 個人帳號 OAuth 憑證。',
-  'settings.account.credentialTooLarge': '憑證超過 Windows 認證管理員的 2560 位元組上限。',
-  'settings.account.notFound': '該憑證已移除，請重新整理列表。',
-  'settings.account.noCurrentCredential': '暫時無法讀取目前帳號的共享憑證。',
-  'settings.account.busy': '另一個視窗正在操作憑證，請稍後重試。',
-  'settings.account.storeFailed': '憑證操作失敗，請重試。',
-  'settings.account.rollbackFailed': '憑證寫入與回復均失敗。請在 Antigravity 中確認目前帳號後再繼續。',
-  'settings.account.credentialAccessDenied': 'Windows 拒絕存取認證管理員。請在目前的 Windows 使用者工作階段中開啟 Antigravity 後重試。',
-  'settings.account.credentialChanged': '這份憑證已在其他視窗更新，請重新整理列表後重試。',
-  'settings.account.credentialRejected': 'Google 未接受此憑證。請檢查權杖是否屬於 Antigravity 且仍然有效。',
-  'settings.account.identityMismatch': '憑證所屬帳號與主程式或儲存的帳號不一致。請重新匯入該憑證。',
-  'settings.account.oauthClientUnavailable': '未能從本機 Antigravity 讀取 OAuth 用戶端設定。',
-  'settings.account.oauthUnavailable': '暫時無法完成 Google OAuth 驗證，請檢查網路後重試。',
-  'settings.account.quotaUnavailable': '暫時無法取得此帳號的額度，請稍候重試。',
   'settings.saving': '儲存中…',
   'settings.saved': '已儲存',
   'settings.saveFailed': '儲存失敗',
@@ -1437,37 +1371,11 @@ const I18N_MESSAGES_ZH_CN = Object.freeze({
 
   // Preferences -> Structure Tab
   'settings.str.thirdTabAria': '結構子選單切換',
-  'settings.str.tabMount': '掛載膠囊',
-  'settings.str.tabHover': '滑鼠懸浮窗',
+  'settings.str.tabMount': '狀態膠囊',
   'settings.str.tabOverview': '即時監控版面',
   'settings.str.tabSteps': '呼叫明細欄位',
-  'settings.str.previewMountSidebarHint': '目前為僅側邊欄模式，主視窗不掛載膠囊；切回頂部欄或輸入框掛載後將依上方樣式呈現',
-  'settings.str.mountSection': '掛載膠囊',
+  'settings.str.mountSection': '狀態膠囊與 CLI 底欄',
   'settings.str.mountBadge': '{count}/5 項',
-  'settings.str.mountMode': '面板掛載方式',
-  'settings.str.mountDual': '雙棲掛載 (頂部欄 + 側邊欄)',
-  'settings.str.mountComposer': '輸入框掛載 (輸入框 + 側邊欄)',
-  'settings.str.mountSidebar': '僅側邊欄',
-  'settings.bridge.restartTitle': '已自動補齊啟動參數，重啟一次即可啟用懸浮膠囊',
-  'settings.bridge.ctxRestartTitle': '已自動補齊啟動參數，重啟一次即可啟用上下文覆寫',
-  'settings.bridge.restartBody': '已自動為桌面 / 開始功能表 / 工作列捷徑及開機自啟項目寫入 --remote-debugging-port=0（後續每次正常開啟均 100% 全自動掛載）。點擊下方按鈕即可結束系統匣背景並立即生效。',
-  'settings.bridge.noPortTitle': '未偵測到本機偵錯連接埠，主視窗掛載暫未生效',
-  'settings.bridge.unreachableTitle': '本機偵錯連接埠未就緒，主視窗掛載暫未生效',
-  'settings.bridge.ctxTitle': '未連通本機偵錯通道，上下文視窗覆寫暫未注入',
-  'settings.bridge.guideWin': 'Antigravity 2.33.0+ 預設不再開啟偵錯連接埠。點擊「立即重啟並啟用掛載」即可自動補齊捷徑參數、結束系統匣背景並帶參數重啟生效。',
-  'settings.bridge.guideMac': 'Antigravity 2.33.0+ 預設不再開啟偵錯連接埠。點擊「立即重啟並啟用掛載」即可一鍵帶參數重開用戶端生效，亦可複製參數透過 open -a "Antigravity" --args --remote-debugging-port=0 啟動。',
-  'settings.bridge.guideLinux': 'Antigravity 2.33.0+ 預設不再開啟偵錯連接埠。點擊「立即重啟並啟用掛載」即可自動寫入 .desktop 啟動器並重啟生效。',
-  'settings.bridge.relaunchBtn': '立即重啟並啟用掛載',
-  'settings.bridge.relaunchingBtn': '正在重啟用戶端...',
-  'settings.bridge.relaunchFailed': '自動重啟失敗，請從系統匣結束後重試',
-  'settings.bridge.dismissAria': '暫時關閉提示',
-  'settings.bridge.copyFlagBtn': '複製 {cmd}',
-  'settings.bridge.copiedBtn': '已複製啟動參數',
-  'settings.str.popoverWidthLabel': '懸浮面板寬度',
-  'settings.str.popoverWidthAuto': '自適應',
-  'settings.str.popoverWidthCustom': '指定寬度',
-  'settings.str.popoverWidthHint': '自適應模式下於呼叫明細等寬表格畫面會自動撐寬免水平捲動；指定寬度範圍 440~1080 px',
-  'settings.str.multiToggle': '即時執行對話入口',
   'settings.str.cliCapsuleToggle': 'CLI 底部狀態膠囊',
   'settings.str.show': '顯示',
   'settings.str.hide': '隱藏',
@@ -1475,12 +1383,6 @@ const I18N_MESSAGES_ZH_CN = Object.freeze({
   'settings.str.off': '關閉',
   'settings.str.capsuleSlotsLabel': '膠囊數值與順序 (左 → 右，1~5 項，可拖曳)',
   'settings.str.addCapsuleSlot': '新增欄位 ({count}/{max})',
-  'settings.str.hoverSection': '滑鼠懸浮窗',
-  'settings.str.hoverBadgeOff': '已關閉',
-  'settings.str.hoverBadgeCount': '{count} 模組',
-  'settings.str.hoverModulesLabel': '懸浮窗展示模組 (上 → 下，0~4 項，可拖曳)',
-  'settings.str.hoverEmptyHint': '已關閉懸浮速覽窗（點擊膠囊仍可展開完整面板）',
-  'settings.str.addHoverModule': '新增模組 ({count}/{max})',
   'settings.str.overviewSection': '即時監控版面',
   'settings.str.overviewBadge': '{modCount} 模組 · {metCount} 指標',
   'settings.str.overviewModulesLabel': '監控模組與順序 (上 → 下，至少 1 項，可拖曳)',
@@ -1518,27 +1420,6 @@ const I18N_MESSAGES_ZH_CN = Object.freeze({
   'settings.oth.orchFormat': 'Orchestrator 系列 ID',
   'settings.oth.orchCompact': '精簡代號 (如 orchestrator-argon)',
   'settings.oth.orchFull': '原始完整 ID (如 gemini-pro-orchestrator)',
-  'settings.oth.baselineTitle': '模型上下文設定',
-  'settings.oth.ctxRiskTitle': '非官方能力風險提示',
-  'settings.oth.ctxRiskBody': 'Google 官方並未授權在 Antigravity App / IDE 中修改模型上下文上限。擅自修改可能導致 Antigravity 或 GCP 服務被停用，甚至觸發帳號封鎖；啟用該功能即預設由您自行承擔全部風險。請務必清楚自己在做什麼！',
-  'settings.oth.ctxRiskAcceptBtn': '我已知曉風險，繼續使用',
-  'settings.oth.ctxModel': '模型',
-  'settings.oth.ctxBaselineLabel': '上下文視窗上限',
-  'settings.oth.ctxChooseModel': '選擇模型',
-  'settings.oth.ctxDefault': '跟隨主程式設定',
-  'settings.oth.ctxExpensive': '{name}（消耗更多配額）',
-  'settings.oth.ctxTokens': '{count} token',
-  'settings.oth.ctxUnavailable': '{name}（目前不可用）',
-  'settings.oth.ctxConfigured': '{name} · 已設定',
-  'settings.oth.ctxConfiguredReported': '{name} · 已設定 / 最近 {reported}',
-  'settings.oth.ctxPendingBridge': '{name} · 待重啟生效',
-  'settings.oth.ctxDefaultReported': '預設 · 最近 {name}',
-  'settings.oth.ctxReported': '最近一次請求由主程式回報為 {name}。',
-  'settings.oth.ctxMixed': '各推理檔設定不同',
-  'settings.oth.ctxMixedHint': '該模型的推理檔保留了不同的舊設定。選擇一個上限即可統一。',
-  'settings.oth.ctxBaselineHint': '同一模型的推理檔共享上限。外掛會在啟動後重新套用已儲存的設定，用於之後發送的訊息。',
-  'settings.oth.ctxNoModels': '主程式暫未回傳可用模型。',
-  'settings.oth.ctxNoOptions': '主程式未提供此模型的上下文檔位或容量，目前只能跟隨主程式設定。',
   'settings.oth.maintTitle': '快取與重設',
   'settings.oth.cacheLabel': '本機軌跡快取',
   'settings.oth.cacheDesc': '清空記憶體與磁碟步驟解析快取並立即重掃全部對話',
@@ -1706,32 +1587,11 @@ const I18N_MESSAGES_EN_US = Object.freeze({
   'fmt.selectPlaceholder': 'Select',
 
   // Capsule & Multi-Session Overlay
-  'capsule.ariaMonitor': 'Usage & Speed Monitor',
-  'capsule.ariaMulti': 'Active Sessions Overview',
-  'capsule.multiZero': '0 active',
-  'capsule.multiRunning': '{count} active',
-  'capsule.multiRunningWithSubs': '{count} active · {subs} sub',
   'capsule.tpsRunning': 'Running',
   'capsule.tpsIdle': 'Idle',
   'capsule.quotaLeft': '{pct}% left',
   'capsule.quotaUnknown': '--% left',
-  'capsule.newVersion': 'Update',
   'capsule.updating': 'Updating…',
-  'capsule.ariaUpdateTitle': 'New version available, click to update',
-  'capsule.hoverNewVer': 'Update v{ver} available',
-  'capsule.hoverNewVerGeneric': 'New version available',
-  'capsule.hoverUpdateHintTopbar': 'Click v{ver} in titlebar to update',
-  'capsule.hoverUpdateHintComposer': 'Click v{ver} badge to update',
-  'capsule.hoverUpdateHintTopbarGeneric': 'Click update badge in titlebar',
-  'capsule.hoverUpdateHintComposerGeneric': 'Click update badge to install',
-  'multi.title': 'Active Sessions',
-  'multi.ariaDialog': 'Active Sessions Panel',
-  'multi.pinned': 'Pinned',
-  'multi.loading': 'Loading...',
-  'multi.empty': 'No active running sessions',
-  'multi.allIdle': 'All idle',
-  'multi.metaWithSubs': '{main} main · {subs} subagents active',
-  'multi.metaMainOnly': '{main} sessions active',
   'multi.hereTag': 'Here',
   'multi.inspectSessionTitle': 'Inspect session in monitor: {title}',
 
@@ -1956,54 +1816,7 @@ const I18N_MESSAGES_EN_US = Object.freeze({
   // Preferences (3-Tab Modular Settings)
   'settings.subTab.general': 'General',
   'settings.subTab.structure': 'Structure',
-  'settings.subTab.account': 'Account',
   'settings.subTab.other': 'Other',
-  'settings.account.current': 'Current account',
-  'settings.account.signedOut': 'Signed out',
-  'settings.account.unknown': 'Account status unavailable',
-  'settings.account.email': 'Account email',
-  'settings.account.credential': 'OAuth credential',
-  'settings.account.importHint': 'Paste an Antigravity refresh token or OAuth JSON containing a refresh_token. The account email is verified and the credential is encrypted on this device.',
-  'settings.account.save': 'Import credential',
-  'settings.account.capture': 'Save current credential',
-  'settings.account.reload': 'Refresh list',
-  'settings.account.switch': 'Switch',
-  'settings.account.remove': 'Remove',
-  'settings.account.active': 'In use',
-  'settings.account.written': 'Credential written',
-  'settings.account.pending': 'The credential for {email} was written. If Antigravity stays on the previous account, reopen it.',
-  'settings.account.savedCredentials': 'Saved credentials',
-  'settings.account.empty': 'No saved credentials.',
-  'settings.account.loading': 'Loading saved credentials…',
-  'settings.account.saved': 'Credential saved.',
-  'settings.account.removed': 'Saved credential removed.',
-  'settings.account.switched': 'Account switched. Refreshing the current quota.',
-  'settings.account.switching': 'Replacing the credential and confirming the active account…',
-  'settings.account.verifying': 'Verifying the credential owner…',
-  'settings.account.loadQuota': 'Check quota',
-  'settings.account.loadingQuota': 'Checking quota for this credential…',
-  'settings.account.emptyCredentialQuota': 'There are no quota pools to display for this account.',
-  'settings.account.quota': 'Quota remaining by pool',
-  'settings.account.quota5h': '5 hours {percent}%',
-  'settings.account.quotaWeekly': 'Weekly {percent}%',
-  'settings.account.noQuota': 'Quota pools are unavailable for the current account.',
-  'settings.account.quotaStale': 'Quota refresh failed. Showing the last data for the current account.',
-  'settings.account.unsupported': 'Credential switching currently supports Antigravity shared sign-in on Windows.',
-  'settings.account.invalidEmail': 'Select a saved account first.',
-  'settings.account.invalidCredential': 'Enter a valid Antigravity OAuth credential for a personal account.',
-  'settings.account.credentialTooLarge': 'The credential exceeds the Windows Credential Manager limit of 2560 bytes.',
-  'settings.account.notFound': 'This credential was removed. Refresh the list.',
-  'settings.account.noCurrentCredential': 'The shared credential for the current account is unavailable.',
-  'settings.account.busy': 'Another window is updating credentials. Try again shortly.',
-  'settings.account.storeFailed': 'The credential operation failed. Try again.',
-  'settings.account.rollbackFailed': 'Writing and restoring the credential both failed. Check the active account in Antigravity before continuing.',
-  'settings.account.credentialAccessDenied': 'Windows denied access to Credential Manager. Open Antigravity in your Windows user session and try again.',
-  'settings.account.credentialChanged': 'This credential was updated in another window. Refresh the list and try again.',
-  'settings.account.credentialRejected': 'Google rejected this credential. Check that the Antigravity refresh token is still valid.',
-  'settings.account.identityMismatch': 'The credential belongs to a different account. Import the credential again.',
-  'settings.account.oauthClientUnavailable': 'The local Antigravity OAuth client configuration could not be read.',
-  'settings.account.oauthUnavailable': 'Google OAuth verification is unavailable. Check your network and try again.',
-  'settings.account.quotaUnavailable': 'Quota for this account is unavailable. Try again shortly.',
   'settings.subTab.aria': 'Preferences category tabs',
   'settings.saving': 'Saving…',
   'settings.saved': 'Saved',
@@ -2067,37 +1880,11 @@ const I18N_MESSAGES_EN_US = Object.freeze({
 
   // Preferences -> Structure Tab
   'settings.str.thirdTabAria': 'Structure section tabs',
-  'settings.str.tabMount': 'Mount & Bar',
-  'settings.str.tabHover': 'Hover View',
+  'settings.str.tabMount': 'Status Bar',
   'settings.str.tabOverview': 'Overview',
   'settings.str.tabSteps': 'Step Table',
-  'settings.str.previewMountSidebarHint': 'Window capsule is disabled in Sidebar Only mode; switching back to Titlebar or Composer applies the capsule above',
-  'settings.str.mountSection': 'Mount & Capsule Bar',
+  'settings.str.mountSection': 'Status Capsule & CLI Bar',
   'settings.str.mountBadge': '{count}/5 slots',
-  'settings.str.mountMode': 'Panel Mount Mode',
-  'settings.str.mountDual': 'Dual Mount (Titlebar + Sidebar)',
-  'settings.str.mountComposer': 'Composer Mount (Input Box + Sidebar)',
-  'settings.str.mountSidebar': 'Sidebar Only',
-  'settings.bridge.restartTitle': 'Launch Flag Auto-Configured — Restart Once to Activate',
-  'settings.bridge.ctxRestartTitle': 'Launch Flag Auto-Configured — Restart Once for Context Override',
-  'settings.bridge.restartBody': 'Automatically added --remote-debugging-port=0 to your shortcuts and startup entries (future launches mount 100% automatically). Click below to close tray processes and relaunch now.',
-  'settings.bridge.noPortTitle': 'Local Debug Port Missing — Window Mount Inactive',
-  'settings.bridge.unreachableTitle': 'Local Debug Port Not Ready — Window Mount Inactive',
-  'settings.bridge.ctxTitle': 'Local Debug Port Inactive — Context Override Pending',
-  'settings.bridge.guideWin': 'Antigravity 2.33.0+ no longer opens a debug port by default. Click "Relaunch & Enable Mount" to auto-configure shortcuts, close tray background processes, and relaunch.',
-  'settings.bridge.guideMac': 'Antigravity 2.33.0+ no longer opens a debug port by default. Click "Relaunch & Enable Mount" to relaunch with the flag in one click, or run open -a "Antigravity" --args --remote-debugging-port=0.',
-  'settings.bridge.guideLinux': 'Antigravity 2.33.0+ no longer opens a debug port by default. Click "Relaunch & Enable Mount" to update your .desktop launcher and relaunch.',
-  'settings.bridge.relaunchBtn': 'Relaunch & Enable Mount',
-  'settings.bridge.relaunchingBtn': 'Relaunching Host...',
-  'settings.bridge.relaunchFailed': 'Auto-relaunch failed — quit from tray and retry',
-  'settings.bridge.dismissAria': 'Dismiss notice for now',
-  'settings.bridge.copyFlagBtn': 'Copy {cmd}',
-  'settings.bridge.copiedBtn': 'Copied to Clipboard',
-  'settings.str.popoverWidthLabel': 'Popover Width',
-  'settings.str.popoverWidthAuto': 'Auto Fit',
-  'settings.str.popoverWidthCustom': 'Custom',
-  'settings.str.popoverWidthHint': 'Auto Fit widens wide tables like Step Records to avoid horizontal scroll; Custom accepts 440–1080 px',
-  'settings.str.multiToggle': 'Active Sessions Pill',
   'settings.str.cliCapsuleToggle': 'CLI Bottom Capsule',
   'settings.str.show': 'Show',
   'settings.str.hide': 'Hide',
@@ -2105,12 +1892,6 @@ const I18N_MESSAGES_EN_US = Object.freeze({
   'settings.str.off': 'Off',
   'settings.str.capsuleSlotsLabel': 'Capsule Metrics & Order (Left → Right, 1–5, draggable)',
   'settings.str.addCapsuleSlot': 'Add Slot ({count}/{max})',
-  'settings.str.hoverSection': 'Hover Quick-View',
-  'settings.str.hoverBadgeOff': 'Off',
-  'settings.str.hoverBadgeCount': '{count} modules',
-  'settings.str.hoverModulesLabel': 'Hover Popup Modules (Top → Bottom, 0–4, draggable)',
-  'settings.str.hoverEmptyHint': 'Hover quick-view disabled (click capsule to open full panel)',
-  'settings.str.addHoverModule': 'Add Module ({count}/{max})',
   'settings.str.overviewSection': 'Live Overview Layout',
   'settings.str.overviewBadge': '{modCount} mod · {metCount} cells',
   'settings.str.overviewModulesLabel': 'Overview Modules & Order (Top → Bottom, min 1, draggable)',
@@ -2148,27 +1929,6 @@ const I18N_MESSAGES_EN_US = Object.freeze({
   'settings.oth.orchFormat': 'Orchestrator Series ID',
   'settings.oth.orchCompact': 'Compact Alias (e.g. orchestrator-argon)',
   'settings.oth.orchFull': 'Full Upstream ID (e.g. gemini-pro-orchestrator)',
-  'settings.oth.baselineTitle': 'Model Context Settings',
-  'settings.oth.ctxRiskTitle': 'Unofficial Override Risk Warning',
-  'settings.oth.ctxRiskBody': 'Google has not authorized modifying model context limits in Antigravity App / IDE. Altering context limits may get your Antigravity access, GCP services, or Google account disabled or banned; enabling this feature means you assume all associated risks. Make sure you know what you are doing!',
-  'settings.oth.ctxRiskAcceptBtn': 'I Understand the Risk, Unlock',
-  'settings.oth.ctxModel': 'Model',
-  'settings.oth.ctxBaselineLabel': 'Context Window Limit',
-  'settings.oth.ctxChooseModel': 'Choose a model',
-  'settings.oth.ctxDefault': 'Follow host settings',
-  'settings.oth.ctxExpensive': '{name} (uses more quota)',
-  'settings.oth.ctxTokens': '{count} tokens',
-  'settings.oth.ctxUnavailable': '{name} (currently unavailable)',
-  'settings.oth.ctxConfigured': '{name} · Set',
-  'settings.oth.ctxConfiguredReported': '{name} · Set / Last seen {reported}',
-  'settings.oth.ctxPendingBridge': '{name} · Pending Restart',
-  'settings.oth.ctxDefaultReported': 'Default · Last seen {name}',
-  'settings.oth.ctxReported': 'The host reported {name} on the latest request.',
-  'settings.oth.ctxMixed': 'Different limits by thinking level',
-  'settings.oth.ctxMixedHint': 'Thinking levels for this model have different saved limits. Choose a limit to apply it to all levels.',
-  'settings.oth.ctxBaselineHint': 'Thinking levels for the same model share a limit. Saved limits are reapplied at plugin startup and used for future messages.',
-  'settings.oth.ctxNoModels': 'The host has not returned any available models.',
-  'settings.oth.ctxNoOptions': 'The host has not provided context options or a capacity for this model. Follow host settings is the only available option.',
   'settings.oth.maintTitle': 'Cache & Reset',
   'settings.oth.cacheLabel': 'Local Trajectory Cache',
   'settings.oth.cacheDesc': 'Clear cached step records and rescan all conversation transcripts immediately',
@@ -2340,7 +2100,7 @@ return { I18N_DICTIONARIES, normalizeI18nLanguage, detectHostSystemLocale, i18nS
 })();
 
 // --- src/core/appearance.js ---
-const { THEME_ACCENT_PRESETS, FONT_SCALE_FACTORS, PANEL_SCALE_FACTORS, normalizeClientThemeAccent, normalizeClientFontScale, applyAppearanceToRoot } = (() => {
+const { THEME_ACCENT_PRESETS, normalizeClientThemeAccent, normalizeClientFontScale, applyAppearanceToRoot } = (() => {
 /**
  * @fileoverview Theme accent palette & panel font-scale appearance engine.
  * Applies CSS custom properties cleanly to Sidebar `:root` and Shadow DOM hosts,
@@ -2432,7 +2192,7 @@ function applyAppearanceToRoot(targetEl, settings, { includeFontScale = true } =
     }
   }
 }
-return { THEME_ACCENT_PRESETS, FONT_SCALE_FACTORS, PANEL_SCALE_FACTORS, normalizeClientThemeAccent, normalizeClientFontScale, applyAppearanceToRoot };
+return { THEME_ACCENT_PRESETS, normalizeClientThemeAccent, normalizeClientFontScale, applyAppearanceToRoot };
 })();
 
 // --- src/core/domPatch.js ---
@@ -2719,7 +2479,7 @@ return { defineComponent };
 })();
 
 // --- src/core/formatters.js ---
-const { formatMetric, formatCachePct, getSpeedToneClass, getCacheToneClass, getStepCostToneClass, getTtftToneClass, formatTokens, formatTokensPrecise, formatCnyApprox, formatDateSpanBadge, formatUsd, speedReasonText, sampleSummary, formatCountdown, formatCompactDateTime, formatElapsedSec, stripVendorModelPrefix, normalizeOrchestratorIdDisplayMode, resolveModelDisplayInfo, mergeModelsByDisplayName, getAgentBadgeClass, formatAgentBadgeText, formatAgentLabel, formatLiveActivityLabel, formatLiveActivityDetail } = (() => {
+const { formatMetric, formatCachePct, getSpeedToneClass, getCacheToneClass, getStepCostToneClass, getTtftToneClass, formatTokens, formatTokensPrecise, formatCnyApprox, formatDateSpanBadge, formatUsd, speedReasonText, sampleSummary, formatCountdown, formatCompactDateTime, formatElapsedSec, normalizeOrchestratorIdDisplayMode, resolveModelDisplayInfo, mergeModelsByDisplayName, getAgentBadgeClass, formatAgentBadgeText, formatAgentLabel, formatLiveActivityLabel, formatLiveActivityDetail } = (() => {
 /**
  * @fileoverview Pure formatting utilities for speed metrics, token counts,
  * USD estimates, countdown timers, and custom datetime displays.
@@ -3319,11 +3079,11 @@ function formatLiveActivityDetail(act) {
   }
   return String(act.detail || '');
 }
-return { formatMetric, formatCachePct, getSpeedToneClass, getCacheToneClass, getStepCostToneClass, getTtftToneClass, formatTokens, formatTokensPrecise, formatCnyApprox, formatDateSpanBadge, formatUsd, speedReasonText, sampleSummary, formatCountdown, formatCompactDateTime, formatElapsedSec, stripVendorModelPrefix, normalizeOrchestratorIdDisplayMode, resolveModelDisplayInfo, mergeModelsByDisplayName, getAgentBadgeClass, formatAgentBadgeText, formatAgentLabel, formatLiveActivityLabel, formatLiveActivityDetail };
+return { formatMetric, formatCachePct, getSpeedToneClass, getCacheToneClass, getStepCostToneClass, getTtftToneClass, formatTokens, formatTokensPrecise, formatCnyApprox, formatDateSpanBadge, formatUsd, speedReasonText, sampleSummary, formatCountdown, formatCompactDateTime, formatElapsedSec, normalizeOrchestratorIdDisplayMode, resolveModelDisplayInfo, mergeModelsByDisplayName, getAgentBadgeClass, formatAgentBadgeText, formatAgentLabel, formatLiveActivityLabel, formatLiveActivityDetail };
 })();
 
 // --- src/core/httpClient.js ---
-const { getWindowBridgeConfig, isWindowOverlayMode, callSidecarApi } = (() => {
+const { callSidecarApi } = (() => {
 /**
  * @fileoverview Async HTTP client with AbortController cancellation for stale
  * polling requests, concurrent GET deduplication, and Sidecar / Standalone transport.
@@ -3331,14 +3091,6 @@ const { getWindowBridgeConfig, isWindowOverlayMode, callSidecarApi } = (() => {
 
 const inFlightGets = new Map();
 const activeControllers = new Map();
-
-function getWindowBridgeConfig() {
-  return null;
-}
-
-function isWindowOverlayMode() {
-  return false;
-}
 
 async function callSidecarApi(path, { method = 'GET', body, abortKey = '' } = {}) {
   const upperMethod = method.toUpperCase();
@@ -3422,7 +3174,7 @@ async function callSidecarApi(path, { method = 'GET', body, abortKey = '' } = {}
   }
   return promise;
 }
-return { getWindowBridgeConfig, isWindowOverlayMode, callSidecarApi };
+return { callSidecarApi };
 })();
 
 // --- src/store/uiStore.js ---
@@ -3458,25 +3210,18 @@ return { getViewTabs, uiStore, getVisibleMonitorView };
 })();
 
 // --- src/store/telemetryStore.js ---
-const { extractHostRouteCascadeId, telemetryStore, CLIENT_TOPBAR_SLOT_KEYS, DEFAULT_CLIENT_TOPBAR_SLOTS, CLIENT_OVERVIEW_MODULE_KEYS, DEFAULT_CLIENT_OVERVIEW_MODULES, DEFAULT_CLIENT_HOVER_MODULES, CLIENT_OVERVIEW_METRIC_KEYS, DEFAULT_CLIENT_OVERVIEW_METRICS, CLIENT_STEP_COLUMN_KEYS, DEFAULT_CLIENT_STEP_COLUMNS, DEFAULT_CLIENT_STEP_TOKEN_COMBO_FORMAT, MIN_CLIENT_POPOVER_WIDTH, MAX_CLIENT_POPOVER_WIDTH, DEFAULT_CLIENT_POPOVER_WIDTH, parseClientStepTokenComboSegments, normalizeClientStepTokenComboFormat, normalizeClientPopoverWidthMode, normalizeClientPopoverWidth, normalizeClientModelDisplayMode, normalizeClientTopbarSlots, normalizeClientHoverModules, normalizeClientOverviewModules, normalizeClientOverviewMetrics, normalizeClientStepColumns, normalizeClientUpdateMode, normalizeClientOrchestratorIdMode, normalizeClientWindowMountMode, isEquivalentTelemetry, fetchTelemetry, saveSettingsPatch, saveModelContextWindow, resetAllSettings, rebuildTrajectoryCache, triggerCloudSync, triggerPluginUpdate, startAsyncTelemetryLoop, stopAsyncTelemetryLoop, resolveScopedConversation, isMacHostPlatform } = (() => {
+const { telemetryStore, DEFAULT_CLIENT_TOPBAR_SLOTS, DEFAULT_CLIENT_OVERVIEW_MODULES, DEFAULT_CLIENT_OVERVIEW_METRICS, DEFAULT_CLIENT_STEP_COLUMNS, DEFAULT_CLIENT_STEP_TOKEN_COMBO_FORMAT, parseClientStepTokenComboSegments, normalizeClientStepTokenComboFormat, normalizeClientModelDisplayMode, normalizeClientTopbarSlots, normalizeClientOverviewModules, normalizeClientOverviewMetrics, normalizeClientStepColumns, normalizeClientUpdateMode, normalizeClientOrchestratorIdMode, isEquivalentTelemetry, fetchTelemetry, saveSettingsPatch, resetAllSettings, rebuildTrajectoryCache, triggerCloudSync, triggerPluginUpdate, startAsyncTelemetryLoop, stopAsyncTelemetryLoop, resolveScopedConversation } = (() => {
 /**
  * @fileoverview Reactive telemetry store with async non-overlapping poll scheduler
  * and granular slice updates.
  */
 
 
-const CASCADE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function extractHostRouteCascadeId() {
-  return '';
-}
-
 const initialConversationId =
   (typeof window !== 'undefined' && window.sidecar?.conversationId) || '';
 
 const telemetryStore = createReactiveStore({
   selectedConversationId: initialConversationId,
-  hostRouteConversationId: extractHostRouteCascadeId(),
   selectedTimeRange: 'today',
   customStartMs: Date.now() - 24 * 3600 * 1000,
   customEndMs: Date.now(),
@@ -3497,33 +3242,21 @@ let loopActive = false;
 let loopIntervalMs = 2000;
 let loopTickFn = null;
 
-const CLIENT_TOPBAR_SLOT_KEYS = TOPBAR_SLOT_KEYS;
 const DEFAULT_CLIENT_TOPBAR_SLOTS = DEFAULT_TOPBAR_SLOTS;
-const CLIENT_OVERVIEW_MODULE_KEYS = OVERVIEW_MODULE_KEYS;
 const DEFAULT_CLIENT_OVERVIEW_MODULES = DEFAULT_OVERVIEW_MODULES;
-const DEFAULT_CLIENT_HOVER_MODULES = DEFAULT_HOVER_MODULES;
-const CLIENT_OVERVIEW_METRIC_KEYS = OVERVIEW_METRIC_KEYS;
 const DEFAULT_CLIENT_OVERVIEW_METRICS = DEFAULT_OVERVIEW_METRICS;
-const CLIENT_STEP_COLUMN_KEYS = STEP_TABLE_COLUMN_KEYS;
 const DEFAULT_CLIENT_STEP_COLUMNS = DEFAULT_STEP_TABLE_COLUMNS;
 const DEFAULT_CLIENT_STEP_TOKEN_COMBO_FORMAT = DEFAULT_STEP_TOKEN_COMBO_FORMAT;
-const MIN_CLIENT_POPOVER_WIDTH = MIN_POPOVER_WIDTH;
-const MAX_CLIENT_POPOVER_WIDTH = MAX_POPOVER_WIDTH;
-const DEFAULT_CLIENT_POPOVER_WIDTH = DEFAULT_POPOVER_WIDTH;
 
 const parseClientStepTokenComboSegments = parseStepTokenComboSegments;
 const normalizeClientStepTokenComboFormat = normalizeStepTokenComboFormat;
-const normalizeClientPopoverWidthMode = normalizePopoverWidthMode;
-const normalizeClientPopoverWidth = normalizePopoverWidth;
 const normalizeClientModelDisplayMode = normalizeModelDisplayMode;
 const normalizeClientTopbarSlots = normalizeTopbarCapsuleSlots;
-const normalizeClientHoverModules = normalizeHoverModules;
 const normalizeClientOverviewModules = normalizeOverviewModules;
 const normalizeClientOverviewMetrics = normalizeOverviewMetrics;
 const normalizeClientStepColumns = normalizeStepTableColumns;
 const normalizeClientUpdateMode = normalizePluginUpdateMode;
 const normalizeClientOrchestratorIdMode = normalizeOrchestratorIdMode;
-const normalizeClientWindowMountMode = normalizeWindowMountMode;
 
 function isEquivalentTelemetry(prev, next) {
   if (!prev || !next) return false;
@@ -3588,8 +3321,8 @@ function isEquivalentTelemetry(prev, next) {
   if ((pSet?.pluginUpdateMode ?? '') !== (nSet?.pluginUpdateMode ?? '')) return false;
   if (pSet?.autoUpdatePlugin !== nSet?.autoUpdatePlugin) return false;
   if (
-    normalizeClientWindowMountMode(pSet?.windowMountMode, pSet?.enableWindowOverlay) !==
-    normalizeClientWindowMountMode(nSet?.windowMountMode, nSet?.enableWindowOverlay)
+    normalizeWindowMountMode(pSet?.windowMountMode, pSet?.enableWindowOverlay) !==
+    normalizeWindowMountMode(nSet?.windowMountMode, nSet?.enableWindowOverlay)
   ) {
     return false;
   }
@@ -4062,20 +3795,8 @@ async function fetchTelemetry({ force = false } = {}) {
     return telemetryStore.getState().telemetry;
   }
 
-  const overlay = isWindowOverlayMode();
-  if (overlay) {
-    const st = telemetryStore.getState();
-    const liveRouteId = extractHostRouteCascadeId();
-    if (liveRouteId !== st.hostRouteConversationId) {
-      const patch = { hostRouteConversationId: liveRouteId };
-      if (liveRouteId && st.selectedConversationId && st.selectedConversationId !== liveRouteId) {
-        patch.selectedConversationId = '';
-      }
-      telemetryStore.setState(patch);
-    }
-  }
   const current = telemetryStore.getState();
-  const effectiveConvId = current.selectedConversationId || current.hostRouteConversationId || '';
+  const effectiveConvId = current.selectedConversationId || '';
   const params = new URLSearchParams();
   if (effectiveConvId) params.set('conversationId', effectiveConvId);
   if (current.selectedTimeRange) params.set('range', current.selectedTimeRange);
@@ -4155,7 +3876,6 @@ async function requestTelemetry(params, force) {
     if (payload?.uiBundleVersion) {
       if (activeBundleVersion && activeBundleVersion !== payload.uiBundleVersion) {
         if (
-          !isWindowOverlayMode() &&
           typeof window !== 'undefined' &&
           typeof window.location?.reload === 'function'
         ) {
@@ -4246,7 +3966,7 @@ async function saveSettingsPatch(patch) {
     safePatch.topbarCapsuleSlots = normalizeClientTopbarSlots(safePatch.topbarCapsuleSlots);
   }
   if (Object.prototype.hasOwnProperty.call(safePatch, 'hoverModules')) {
-    safePatch.hoverModules = normalizeClientHoverModules(safePatch.hoverModules);
+    safePatch.hoverModules = normalizeHoverModules(safePatch.hoverModules);
   }
   if (Object.prototype.hasOwnProperty.call(safePatch, 'overviewModules')) {
     safePatch.overviewModules = normalizeClientOverviewModules(safePatch.overviewModules);
@@ -4274,10 +3994,10 @@ async function saveSettingsPatch(patch) {
     safePatch.modelDisplayMode = safePatch.showUpstreamModel ? 'upstream' : 'short';
   }
   if (Object.prototype.hasOwnProperty.call(safePatch, 'popoverWidthMode')) {
-    safePatch.popoverWidthMode = normalizeClientPopoverWidthMode(safePatch.popoverWidthMode);
+    safePatch.popoverWidthMode = normalizePopoverWidthMode(safePatch.popoverWidthMode);
   }
   if (Object.prototype.hasOwnProperty.call(safePatch, 'popoverWidth')) {
-    safePatch.popoverWidth = normalizeClientPopoverWidth(safePatch.popoverWidth);
+    safePatch.popoverWidth = normalizePopoverWidth(safePatch.popoverWidth);
   }
   if (Object.prototype.hasOwnProperty.call(safePatch, 'contextWindowRiskAccepted')) {
     safePatch.contextWindowRiskAccepted = Boolean(safePatch.contextWindowRiskAccepted);
@@ -4291,7 +4011,7 @@ async function saveSettingsPatch(patch) {
       Number.isInteger(numPort) && numPort >= 1024 && numPort <= 65535 ? numPort : 0;
   }
   if (Object.prototype.hasOwnProperty.call(safePatch, 'windowMountMode')) {
-    const normMount = normalizeClientWindowMountMode(
+    const normMount = normalizeWindowMountMode(
       safePatch.windowMountMode,
       safePatch.enableWindowOverlay
     );
@@ -4319,23 +4039,6 @@ async function saveSettingsPatch(patch) {
     throw err;
   }
   await fetchTelemetry({ force: true });
-}
-
-async function saveModelContextWindow(modelId, option) {
-  const result = await callSidecarApi('/api/context-window', {
-    method: 'POST',
-    body: { modelId, option },
-  });
-  const telemetry = telemetryStore.getState().telemetry;
-  if (telemetry?.settings) {
-    telemetryStore.setState({
-      telemetry: {
-        ...telemetry,
-        settings: { ...telemetry.settings, modelContextWindows: result.modelContextWindows },
-      },
-    });
-  }
-  return result.modelContextWindows;
 }
 
 async function resetAllSettings() {
@@ -4370,7 +4073,6 @@ async function triggerPluginUpdate() {
   if (res?.ok && res?.restarting) {
     await new Promise((r) => setTimeout(r, 1100));
     if (
-      !isWindowOverlayMode() &&
       typeof window !== 'undefined' &&
       typeof window.location?.reload === 'function'
     ) {
@@ -4387,12 +4089,7 @@ function startAsyncTelemetryLoop(intervalMs = 2000) {
   loopActive = true;
   loopIntervalMs = intervalMs;
 
-  const resolveNextDelay = () => {
-    if (isWindowOverlayMode() && typeof document !== 'undefined' && document.hidden) {
-      return Math.max(loopIntervalMs, 8000);
-    }
-    return loopIntervalMs;
-  };
+  const resolveNextDelay = () => loopIntervalMs;
 
   const tick = async () => {
     pollTimer = null;
@@ -4552,25 +4249,7 @@ function resolveScopedConversation(
     ctxAgent,
   };
 }
-
-/**
- * 判断宿主系统是否为 macOS (`darwin`)：优先读取后端遥测或双栖桥接注入的 `platform`，首帧缺省时回退 UA/平台标识。
- *
- * @param {Record<string, any>|null|undefined} telemetry
- * @returns {boolean}
- */
-function isMacHostPlatform(telemetry) {
-  const p = String(telemetry?.hostPlatform || '')
-    .trim()
-    .toLowerCase();
-  if (p) return p === 'darwin';
-  if (typeof navigator !== 'undefined') {
-    const ua = String(navigator.platform || navigator.userAgent || '');
-    return /\b(?:mac|darwin)\b|macintosh|mac\s*os/i.test(ua);
-  }
-  return false;
-}
-return { extractHostRouteCascadeId, telemetryStore, CLIENT_TOPBAR_SLOT_KEYS, DEFAULT_CLIENT_TOPBAR_SLOTS, CLIENT_OVERVIEW_MODULE_KEYS, DEFAULT_CLIENT_OVERVIEW_MODULES, DEFAULT_CLIENT_HOVER_MODULES, CLIENT_OVERVIEW_METRIC_KEYS, DEFAULT_CLIENT_OVERVIEW_METRICS, CLIENT_STEP_COLUMN_KEYS, DEFAULT_CLIENT_STEP_COLUMNS, DEFAULT_CLIENT_STEP_TOKEN_COMBO_FORMAT, MIN_CLIENT_POPOVER_WIDTH, MAX_CLIENT_POPOVER_WIDTH, DEFAULT_CLIENT_POPOVER_WIDTH, parseClientStepTokenComboSegments, normalizeClientStepTokenComboFormat, normalizeClientPopoverWidthMode, normalizeClientPopoverWidth, normalizeClientModelDisplayMode, normalizeClientTopbarSlots, normalizeClientHoverModules, normalizeClientOverviewModules, normalizeClientOverviewMetrics, normalizeClientStepColumns, normalizeClientUpdateMode, normalizeClientOrchestratorIdMode, normalizeClientWindowMountMode, isEquivalentTelemetry, fetchTelemetry, saveSettingsPatch, saveModelContextWindow, resetAllSettings, rebuildTrajectoryCache, triggerCloudSync, triggerPluginUpdate, startAsyncTelemetryLoop, stopAsyncTelemetryLoop, resolveScopedConversation, isMacHostPlatform };
+return { telemetryStore, DEFAULT_CLIENT_TOPBAR_SLOTS, DEFAULT_CLIENT_OVERVIEW_MODULES, DEFAULT_CLIENT_OVERVIEW_METRICS, DEFAULT_CLIENT_STEP_COLUMNS, DEFAULT_CLIENT_STEP_TOKEN_COMBO_FORMAT, parseClientStepTokenComboSegments, normalizeClientStepTokenComboFormat, normalizeClientModelDisplayMode, normalizeClientTopbarSlots, normalizeClientOverviewModules, normalizeClientOverviewMetrics, normalizeClientStepColumns, normalizeClientUpdateMode, normalizeClientOrchestratorIdMode, isEquivalentTelemetry, fetchTelemetry, saveSettingsPatch, resetAllSettings, rebuildTrajectoryCache, triggerCloudSync, triggerPluginUpdate, startAsyncTelemetryLoop, stopAsyncTelemetryLoop, resolveScopedConversation };
 })();
 
 // --- src/components/ui/TopLongPillNav.js ---
@@ -5022,137 +4701,6 @@ const CustomSelect = defineComponent({
   },
 });
 return { CustomSelect };
-})();
-
-// --- src/components/ui/CustomNumberInput.js ---
-const { CustomNumberInput } = (() => {
-/**
- * @fileoverview Bespoke CustomNumberInput spinbutton & precision stepper.
- * Replaces native <input type="number"> with custom SVG step controls,
- * keyboard ArrowUp/ArrowDown (+Shift 10x), and min/max clamping.
- */
-
-
-const CustomNumberInput = defineComponent({
-  name: 'CustomNumberInput',
-  setup({ getProps, setProps, emit }) {
-    function clampValue(raw) {
-      const { min = -Infinity, max = Infinity, precision = 0 } = getProps();
-      const num = Number(raw);
-      if (!Number.isFinite(num)) {
-        return Number(getProps().modelValue ?? (Number.isFinite(min) ? min : 0));
-      }
-      const clamped = Math.min(max, Math.max(min, num));
-      return precision > 0 ? Number(clamped.toFixed(precision)) : Math.round(clamped);
-    }
-
-    function applyStep(direction, multiplier = 1) {
-      const { step = 1, modelValue = 0 } = getProps();
-      const current = Number(modelValue) || 0;
-      const next = clampValue(current + direction * step * multiplier);
-      syncFieldDisplay(next);
-      if (next !== current) {
-        setProps({ modelValue: next });
-        emit('update:modelValue', next);
-      }
-    }
-
-    const decBtn = h(
-      'button',
-      {
-        type: 'button',
-        className: 'num-step-btn',
-        'aria-label': '減少數值',
-        onClick: (e) => {
-          e.preventDefault();
-          applyStep(-1, e.shiftKey ? 10 : 1);
-        },
-      },
-      [createSvgIcon('minus', { size: 12 })]
-    );
-
-    const incBtn = h(
-      'button',
-      {
-        type: 'button',
-        className: 'num-step-btn',
-        'aria-label': '增加數值',
-        onClick: (e) => {
-          e.preventDefault();
-          applyStep(1, e.shiftKey ? 10 : 1);
-        },
-      },
-      [createSvgIcon('plus', { size: 12 })]
-    );
-
-    const textField = h('input', {
-      type: 'text',
-      inputmode: 'decimal',
-      role: 'spinbutton',
-      className: 'num-field',
-      onKeydown: (e) => {
-        if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          applyStep(1, e.shiftKey ? 10 : 1);
-        } else if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          applyStep(-1, e.shiftKey ? 10 : 1);
-        } else if (e.key === 'Enter') {
-          e.preventDefault();
-          commitManualInput();
-        }
-      },
-      onChange: () => commitManualInput(),
-      onBlur: () => commitManualInput(),
-    });
-
-    function commitManualInput() {
-      const raw = String(textField.value ?? '').trim();
-      if (!raw || !/\d/.test(raw)) {
-        syncFieldDisplay(getProps().modelValue);
-        return;
-      }
-      const cleaned = raw.replace(/[^0-9.-]/g, '');
-      const parsed = Number(cleaned);
-      if (!Number.isFinite(parsed)) {
-        syncFieldDisplay(getProps().modelValue);
-        return;
-      }
-      const next = clampValue(parsed);
-      const prev = Number(getProps().modelValue);
-      syncFieldDisplay(next);
-      if (next !== prev) {
-        setProps({ modelValue: next });
-        emit('update:modelValue', next);
-      }
-    }
-
-    function syncFieldDisplay(val = getProps().modelValue) {
-      const { min, max, ariaLabel } = getProps();
-      const normalized = clampValue(val);
-      if (textField.value !== String(normalized)) {
-        textField.value = String(normalized);
-      }
-      patchAttr(textField, 'aria-valuenow', normalized);
-      if (ariaLabel) patchAttr(textField, 'aria-label', ariaLabel);
-      if (Number.isFinite(min)) patchAttr(textField, 'aria-valuemin', min);
-      if (Number.isFinite(max)) patchAttr(textField, 'aria-valuemax', max);
-    }
-
-    const rootEl = h('div', { className: 'number-input' }, [decBtn, textField, incBtn]);
-    syncFieldDisplay();
-
-    return {
-      el: rootEl,
-      refs: { decBtn, incBtn, textField },
-      onPropsChange: () => syncFieldDisplay(),
-      methods: {
-        commit: () => commitManualInput(),
-      },
-    };
-  },
-});
-return { CustomNumberInput };
 })();
 
 // --- src/components/ui/CustomDateTimePicker.js ---
@@ -10916,7 +10464,7 @@ const LiveActivityWidget = defineComponent({
 
       const locale = getEffectiveLocale();
       const hostRouteLower = showSessionExtras
-        ? String(hostRouteConversationId || extractHostRouteCascadeId() || '').toLowerCase()
+        ? String(hostRouteConversationId || '').toLowerCase()
         : '';
 
       const activeTimerKeys = new Set();
@@ -11810,7 +11358,7 @@ return { STEP_COLUMN_KEYS, DEFAULT_STEP_COLUMN_KEYS, formatCustomTokenComboHeade
 })();
 
 // --- src/components/widgets/CapsuleBarWidget.js ---
-const { RING_RADIUS, RING_CIRCUMFERENCE, buildCapsuleSlotContext, resolveMultiSessionCapsuleState, createCapsuleSlotNode, syncCapsuleSlotNodes, CapsuleBarWidget } = (() => {
+const { RING_RADIUS, RING_CIRCUMFERENCE, buildCapsuleSlotContext, createCapsuleSlotNode, syncCapsuleSlotNodes, CapsuleBarWidget } = (() => {
 /**
  * @fileoverview Shared Decoupled Capsule Bar Primitives & Widget (`CapsuleBarWidget.js`).
  * Powers both the live host window capsule (`WindowOverlayShell.js`) and the
@@ -11876,34 +11424,6 @@ function buildCapsuleSlotContext(
     sessionTokens,
     quotas: data.quotas,
   };
-}
-
-/**
- * Compute multi-session button state & normalized running conversation list.
- */
-function resolveMultiSessionCapsuleState(
-  data,
-  { agents = [], aggregated = null, latestTokPerSec = undefined, contextUsedPct = undefined } = {}
-) {
-  const rawRunningList = buildFallbackRunningConversations(data, {
-    agents,
-    aggregated,
-    latestTokPerSec,
-    contextUsedPct,
-  });
-  const runningCount = rawRunningList.length;
-  const runningSubCount = rawRunningList.reduce(
-    (acc, item) => acc + Number(item.runningSubagentCount || 0),
-    0
-  );
-  const hasWaiting = rawRunningList.some((item) => item.mainActivity?.phase === 'waiting');
-  const multiBtnText =
-    runningCount > 0
-      ? runningSubCount > 0
-        ? t('capsule.multiRunningWithSubs', { count: runningCount, subs: runningSubCount })
-        : t('capsule.multiRunning', { count: runningCount })
-      : t('capsule.multiZero');
-  return { rawRunningList, runningCount, runningSubCount, hasWaiting, multiBtnText };
 }
 
 /**
@@ -12029,28 +11549,11 @@ function syncCapsuleSlotNodes(capsuleSlots, capsuleSeps, slotKeys, slotCtx) {
 }
 
 /**
- * Standalone Capsule Bar Preview Widget mounting the real `.wm-multi-btn` and `.wm-capsule-btn`
- * inside a contextual host bar (`dual` titlebar, `composer` toolbar, or `sidebar` disabled state).
+ * Standalone Capsule Bar Preview Widget mounting `.wm-capsule-btn` inside the preview bar.
  */
 const CapsuleBarWidget = defineComponent({
   name: 'CapsuleBarWidget',
   setup() {
-    const multiDot = h('span', { className: 'wm-multi-dot' });
-    const multiLabel = h('span', {
-      className: 'wm-multi-label',
-      text: t('capsule.multiZero'),
-    });
-    const multiBtn = h(
-      'button',
-      {
-        type: 'button',
-        className: 'wm-multi-btn',
-        tabindex: '-1',
-        'aria-hidden': 'true',
-      },
-      [multiDot, multiLabel]
-    );
-
     const capsuleSlots = [
       createCapsuleSlotNode(0, 'tps'),
       createCapsuleSlotNode(1, 'ttft'),
@@ -12086,99 +11589,36 @@ const CapsuleBarWidget = defineComponent({
       ]
     );
 
-    const capsuleCluster = h('div', { className: 'preview-capsule-cluster' }, [
-      multiBtn,
-      capsuleBtn,
-    ]);
+    const capsuleCluster = h('div', { className: 'preview-capsule-cluster' }, [capsuleBtn]);
 
-    // Contextual host chrome affordances for Titlebar vs Composer vs Sidebar-only
     const titlebarLeftMock = h('div', { className: 'preview-host-left is-titlebar' }, [
       h('span', { className: 'preview-win-title', text: 'Antigravity' }),
     ]);
-    const composerLeftMock = h(
-      'div',
-      { className: 'preview-host-left is-composer', hidden: true },
-      [
-        h('span', { className: 'preview-composer-chip' }, [
-          h('span', { text: 'Auto' }),
-          createSvgIcon('chevron-down', { size: 10 }),
-        ]),
-        h('span', { className: 'preview-composer-chip' }, [
-          h('span', { text: 'Carbon (High)' }),
-          createSvgIcon('chevron-down', { size: 10 }),
-        ]),
-      ]
-    );
-
-    const composerSendMock = h(
-      'span',
-      { className: 'preview-composer-send', 'aria-hidden': 'true', hidden: true },
-      [createSvgIcon('arrow-up', { size: 11 })]
-    );
 
     const hostBarEl = h(
       'div',
-      { className: 'preview-capsule-bar', 'data-mount-mode': 'dual' },
-      [titlebarLeftMock, composerLeftMock, capsuleCluster, composerSendMock]
+      { className: 'preview-capsule-bar' },
+      [titlebarLeftMock, capsuleCluster]
     );
 
-    const sidebarHintEl = h('div', {
-      className: 'preview-sidebar-note',
-      hidden: true,
-      text: t('settings.str.previewMountSidebarHint'),
-    });
-
-    const rootEl = h('div', { className: 'capsule-preview-widget' }, [hostBarEl, sidebarHintEl]);
+    const rootEl = h('div', { className: 'capsule-preview-widget' }, [hostBarEl]);
 
     function update({ data } = {}) {
       const settings = data?.settings || {};
-      const mountMode = normalizeClientWindowMountMode(
-        settings.windowMountMode,
-        settings.enableWindowOverlay
-      );
-      const showMulti = settings.showTopbarMultiSession !== false;
       const slotKeys = normalizeClientTopbarSlots(settings.topbarCapsuleSlots);
 
-      const isComposer = mountMode === 'composer';
-      const isSidebar = mountMode === 'sidebar';
-      patchAttr(hostBarEl, 'data-mount-mode', mountMode);
-      patchClasses(hostBarEl, {
-        'is-composer': isComposer,
-        'is-sidebar-only': isSidebar,
-      });
-
-      patchAttr(titlebarLeftMock, 'hidden', isComposer);
-      patchAttr(composerLeftMock, 'hidden', !isComposer);
-      patchAttr(composerSendMock, 'hidden', !isComposer);
-      patchAttr(sidebarHintEl, 'hidden', !isSidebar);
-      patchText(sidebarHintEl, t('settings.str.previewMountSidebarHint'));
-
-      patchAttr(multiBtn, 'hidden', !showMulti);
-
       if (!data) {
-        patchClasses(multiBtn, { 'is-running': false, 'is-waiting': false });
-        patchText(multiLabel, t('capsule.multiZero'));
+        patchClasses(capsuleBtn, { 'is-running': false });
         syncCapsuleSlotNodes(capsuleSlots, capsuleSeps, slotKeys, { hasTelemetry: false });
         return;
       }
 
-      const { agents, scopedConv, ctxAgent, aggregated } = resolveScopedConversation(
+      const { scopedConv, ctxAgent, aggregated } = resolveScopedConversation(
         data,
         'all',
         'auto'
       );
       const slotCtx = buildCapsuleSlotContext(data, { scopedConv, ctxAgent, aggregated });
-      const { runningCount, hasWaiting, multiBtnText } = resolveMultiSessionCapsuleState(data, {
-        agents,
-        aggregated,
-        contextUsedPct: slotCtx.usedPct,
-      });
-
-      patchClasses(multiBtn, {
-        'is-running': runningCount > 0 && !hasWaiting,
-        'is-waiting': runningCount > 0 && hasWaiting,
-      });
-      patchText(multiLabel, multiBtnText);
 
       patchClasses(capsuleBtn, { 'is-running': slotCtx.isRunning });
       syncCapsuleSlotNodes(capsuleSlots, capsuleSeps, slotKeys, slotCtx);
@@ -12188,7 +11628,6 @@ const CapsuleBarWidget = defineComponent({
       el: rootEl,
       refs: {
         update,
-        multiBtn,
         capsuleBtn,
         capsuleSlots,
         capsuleSeps,
@@ -12197,7 +11636,7 @@ const CapsuleBarWidget = defineComponent({
     };
   },
 });
-return { RING_RADIUS, RING_CIRCUMFERENCE, buildCapsuleSlotContext, resolveMultiSessionCapsuleState, createCapsuleSlotNode, syncCapsuleSlotNodes, CapsuleBarWidget };
+return { RING_RADIUS, RING_CIRCUMFERENCE, buildCapsuleSlotContext, createCapsuleSlotNode, syncCapsuleSlotNodes, CapsuleBarWidget };
 })();
 
 // --- src/components/widgets/StepTableWidget.js ---
@@ -14306,23 +13745,22 @@ return { SettingsGeneralTab };
 const { SettingsStructureTab } = (() => {
 /**
  * @fileoverview Preferences Tab 2: `SettingsStructureTab.js` ("结构").
- * Organizes the 4 structure settings panes under a dedicated 3rd-level menu bar,
+ * Organizes the 3 structure settings panes under a dedicated 3rd-level menu bar,
  * renders live previews powered by the decoupled real UI components (`CapsuleBarWidget`,
- * `createDynamicWidgetHost` in `hover` / `overview` modes, and `StepTableWidget`)
+ * `createDynamicWidgetHost` in `overview` mode, and `StepTableWidget`)
  * with simulated telemetry, and supports smooth mouse drag-and-drop reordering.
  */
 
 
 const STRUCTURE_THIRD_TABS = Object.freeze([
   { key: 'mount', icon: 'dock', labelKey: 'settings.str.tabMount' },
-  { key: 'hover', icon: 'layers', labelKey: 'settings.str.tabHover' },
   { key: 'overview', icon: 'pulse', labelKey: 'settings.str.tabOverview' },
   { key: 'steps', icon: 'table', labelKey: 'settings.str.tabSteps' },
 ]);
 
 function normalizeStructureTabKey(raw) {
   const k = String(raw || '').trim();
-  return k === 'hover' || k === 'overview' || k === 'steps' ? k : 'mount';
+  return k === 'overview' || k === 'steps' ? k : 'mount';
 }
 
 function isElementFocused(el) {
@@ -14330,14 +13768,6 @@ function isElementFocused(el) {
   const root = typeof el.getRootNode === 'function' ? el.getRootNode() : null;
   const active = root && 'activeElement' in root ? root.activeElement : document?.activeElement;
   return active === el;
-}
-
-function getMountModeOptions() {
-  return [
-    { value: 'dual', label: t('settings.str.mountDual') },
-    { value: 'composer', label: t('settings.str.mountComposer') },
-    { value: 'sidebar', label: t('settings.str.mountSidebar') },
-  ];
 }
 
 function getMultiToggleOptions() {
@@ -14354,13 +13784,6 @@ function getEnableToggleOptions() {
   ];
 }
 
-function getPopoverWidthModeOptions() {
-  return [
-    { value: 'auto', label: t('settings.str.popoverWidthAuto') },
-    { value: 'custom', label: t('settings.str.popoverWidthCustom') },
-  ];
-}
-
 function isSameList(a, b) {
   if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
   for (let i = 0; i < a.length; i += 1) {
@@ -14373,13 +13796,8 @@ const SettingsStructureTab = defineComponent({
   name: 'SettingsStructureTab',
   setup({ props, onCleanup }) {
     let activeThirdTab = normalizeStructureTabKey(uiStore.getState().settingsStructureTab);
-    let draftWindowMountMode = 'dual';
-    let draftPopoverWidthMode = 'auto';
-    let draftPopoverWidth = DEFAULT_CLIENT_POPOVER_WIDTH;
     let draftEnableCliStatusLine = true;
-    let draftShowTopbarMulti = true;
     let draftTopbarSlots = [...DEFAULT_CLIENT_TOPBAR_SLOTS];
-    let draftHoverModules = [...DEFAULT_CLIENT_HOVER_MODULES];
     let draftOverviewModules = [...DEFAULT_CLIENT_OVERVIEW_MODULES];
     let draftOverviewMetrics = [...DEFAULT_CLIENT_OVERVIEW_METRICS];
     let draftShowStepTurnRail = false;
@@ -14389,8 +13807,6 @@ const SettingsStructureTab = defineComponent({
     let rawStepTokenComboText = DEFAULT_CLIENT_STEP_TOKEN_COMBO_FORMAT;
     let draftStepColumns = [...DEFAULT_CLIENT_STEP_COLUMNS];
     let latestSettings = null;
-    let latestWindowBridge = null;
-    let latestHostPlatform = 'win32';
 
     function isStructureVisible() {
       const st = uiStore.getState();
@@ -14399,14 +13815,8 @@ const SettingsStructureTab = defineComponent({
 
     function buildDraftTelemetry() {
       return buildStructurePreviewTelemetry(latestSettings, {
-        windowMountMode: draftWindowMountMode,
-        enableWindowOverlay: draftWindowMountMode !== 'sidebar',
-        popoverWidthMode: draftPopoverWidthMode,
-        popoverWidth: draftPopoverWidth,
         enableCliStatusLine: draftEnableCliStatusLine,
-        showTopbarMultiSession: draftShowTopbarMulti,
         topbarCapsuleSlots: draftTopbarSlots,
-        hoverModules: draftHoverModules,
         overviewModules: draftOverviewModules,
         overviewMetrics: draftOverviewMetrics,
         showStepTurnRail: draftShowStepTurnRail,
@@ -14469,28 +13879,12 @@ const SettingsStructureTab = defineComponent({
       thirdNavBtns
     );
 
-    // --- Pane 1: 挂载与胶囊栏 (`mount`) ---
+    // --- Pane 1: 狀態膠囊與 CLI 狀態列 (`mount`) ---
     const capsulePreviewWidget = CapsuleBarWidget({});
     const mountPreviewCanvas = h('div', { className: 'structure-preview-canvas' }, [
       capsulePreviewWidget.el,
     ]);
 
-    const mountModeLabelEl = h('span', {
-      className: 'form-label',
-      text: t('settings.str.mountMode'),
-    });
-    const popoverWidthLabelEl = h('span', {
-      className: 'form-label',
-      text: t('settings.str.popoverWidthLabel'),
-    });
-    const popoverWidthHintEl = h('span', {
-      className: 'settings-hint-text',
-      text: t('settings.str.popoverWidthHint'),
-    });
-    const multiToggleLabelEl = h('span', {
-      className: 'form-label',
-      text: t('settings.str.multiToggle'),
-    });
     const cliCapsuleLabelEl = h('span', {
       className: 'form-label',
       text: t('settings.str.cliCapsuleToggle'),
@@ -14498,74 +13892,6 @@ const SettingsStructureTab = defineComponent({
     const capsuleSlotsLabelEl = h('span', {
       className: 'form-label',
       text: t('settings.str.capsuleSlotsLabel'),
-    });
-
-    const windowMountSelect = CustomSelect({
-      modelValue: draftWindowMountMode,
-      icon: 'dock',
-      options: getMountModeOptions(),
-      onUpdateModelValue: (val) => {
-        const nextMode = normalizeClientWindowMountMode(val);
-        draftWindowMountMode = nextMode;
-        syncMountSectionMeta();
-        props.onLayoutChange?.();
-        void persistStructurePatch(mountSection, {
-          windowMountMode: nextMode,
-          enableWindowOverlay: nextMode !== 'sidebar',
-        });
-      },
-    });
-
-    const popoverWidthStepper = CustomNumberInput({
-      modelValue: draftPopoverWidth,
-      min: MIN_CLIENT_POPOVER_WIDTH,
-      max: MAX_CLIENT_POPOVER_WIDTH,
-      step: 10,
-      ariaLabel: t('settings.str.popoverWidthLabel'),
-      onUpdateModelValue: (val) => {
-        const nextWidth = normalizeClientPopoverWidth(val);
-        draftPopoverWidth = nextWidth;
-        syncMountSectionMeta();
-        props.onLayoutChange?.();
-        void persistStructurePatch(mountSection, {
-          popoverWidthMode: draftPopoverWidthMode,
-          popoverWidth: draftPopoverWidth,
-        });
-      },
-    });
-
-    const popoverWidthNumWrap = h(
-      'span',
-      { className: 'settings-number-wrap', hidden: draftPopoverWidthMode !== 'custom' },
-      [popoverWidthStepper.el, h('span', { className: 'settings-number-unit', text: 'px' })]
-    );
-
-    const popoverWidthModeToggle = SegmentedControl({
-      ariaLabel: t('settings.str.popoverWidthLabel'),
-      modelValue: draftPopoverWidthMode,
-      options: getPopoverWidthModeOptions(),
-      onUpdateModelValue: (val) => {
-        draftPopoverWidthMode = normalizeClientPopoverWidthMode(val);
-        syncMountSectionMeta();
-        props.onLayoutChange?.();
-        void persistStructurePatch(mountSection, {
-          popoverWidthMode: draftPopoverWidthMode,
-          popoverWidth: draftPopoverWidth,
-        });
-      },
-    });
-
-    const multiSessionToggle = SegmentedControl({
-      ariaLabel: t('settings.str.multiToggle'),
-      modelValue: 'show',
-      options: getMultiToggleOptions(),
-      onUpdateModelValue: (val) => {
-        draftShowTopbarMulti = val !== 'hide';
-        syncMountSectionMeta();
-        void persistStructurePatch(mountSection, {
-          showTopbarMultiSession: draftShowTopbarMulti,
-        });
-      },
     });
 
     const cliCapsuleToggle = SegmentedControl({
@@ -14607,24 +13933,14 @@ const SettingsStructureTab = defineComponent({
       title: t('settings.str.mountSection'),
       badgeText: t('settings.str.mountBadge', { count: draftTopbarSlots.length }),
       onReset: () => {
-        draftWindowMountMode = 'dual';
-        draftPopoverWidthMode = 'auto';
-        draftPopoverWidth = DEFAULT_CLIENT_POPOVER_WIDTH;
-        popoverWidthStepper.setProps({ modelValue: DEFAULT_CLIENT_POPOVER_WIDTH });
         draftEnableCliStatusLine = true;
-        draftShowTopbarMulti = true;
         draftTopbarSlots = [...DEFAULT_CLIENT_TOPBAR_SLOTS];
         syncMountSectionMeta();
         props.onLayoutChange?.();
         void persistStructurePatch(
           mountSection,
           {
-            windowMountMode: 'dual',
-            enableWindowOverlay: true,
-            popoverWidthMode: 'auto',
-            popoverWidth: DEFAULT_CLIENT_POPOVER_WIDTH,
             enableCliStatusLine: true,
-            showTopbarMultiSession: true,
             topbarCapsuleSlots: [...DEFAULT_CLIENT_TOPBAR_SLOTS],
           },
           'settings.resetDone'
@@ -14633,21 +13949,6 @@ const SettingsStructureTab = defineComponent({
       children: [
         mountPreviewCanvas,
         h('div', { className: 'settings-divider' }),
-        h('div', { className: 'form-row' }, [mountModeLabelEl, windowMountSelect.el]),
-        h('div', { className: 'form-row' }, [
-          h('div', { className: 'settings-inline-row' }, [
-            popoverWidthLabelEl,
-            h('div', { className: 'settings-inline-controls' }, [
-              popoverWidthModeToggle.el,
-              popoverWidthNumWrap,
-            ]),
-          ]),
-          popoverWidthHintEl,
-        ]),
-        h('div', { className: 'settings-inline-row' }, [
-          multiToggleLabelEl,
-          multiSessionToggle.el,
-        ]),
         h('div', { className: 'settings-inline-row' }, [
           cliCapsuleLabelEl,
           cliCapsuleToggle.el,
@@ -14662,25 +13963,6 @@ const SettingsStructureTab = defineComponent({
     }
 
     function syncMountSectionMeta() {
-      windowMountSelect.setProps({
-        modelValue: draftWindowMountMode,
-        options: getMountModeOptions(),
-      });
-      popoverWidthModeToggle.setProps({
-        modelValue: draftPopoverWidthMode,
-        options: getPopoverWidthModeOptions(),
-      });
-      patchAttr(popoverWidthNumWrap, 'hidden', draftPopoverWidthMode !== 'custom');
-      if (!isElementFocused(popoverWidthStepper.refs.textField)) {
-        popoverWidthStepper.setProps({
-          modelValue: draftPopoverWidth,
-          ariaLabel: t('settings.str.popoverWidthLabel'),
-        });
-      }
-      multiSessionToggle.setProps({
-        modelValue: draftShowTopbarMulti ? 'show' : 'hide',
-        options: getMultiToggleOptions(),
-      });
       cliCapsuleToggle.setProps({
         modelValue: draftEnableCliStatusLine ? 'on' : 'off',
         options: getEnableToggleOptions(),
@@ -14694,117 +13976,13 @@ const SettingsStructureTab = defineComponent({
         t('settings.str.mountBadge', { count: draftTopbarSlots.length })
       );
       const isDefault =
-        draftWindowMountMode === 'dual' &&
-        draftPopoverWidthMode === 'auto' &&
-        draftPopoverWidth === DEFAULT_CLIENT_POPOVER_WIDTH &&
         draftEnableCliStatusLine === true &&
-        draftShowTopbarMulti === true &&
         isSameList(draftTopbarSlots, DEFAULT_CLIENT_TOPBAR_SLOTS);
       mountSection.refs.setResetDisabled(isDefault);
       refreshMountPreview();
     }
 
-    // --- Pane 2: 鼠标悬浮窗 (`hover`) ---
-    const hoverWidgetsContainerEl = h('div', { className: 'wm-hover-widgets' });
-    const hoverPreviewTipEl = h('div', { className: 'wm-hover-tip is-preview' }, [
-      hoverWidgetsContainerEl,
-    ]);
-    const hoverPreviewEmptyEl = h('div', {
-      className: 'structure-preview-empty',
-      hidden: true,
-      text: t('settings.str.hoverEmptyHint'),
-    });
-    const hoverPreviewHost = createDynamicWidgetHost({
-      containerEl: hoverWidgetsContainerEl,
-      mode: 'hover',
-      preview: true,
-      isVisibleFn: () => isStructureVisible() && activeThirdTab === 'hover',
-      initialModuleKeys: [],
-    });
-    const hoverPreviewCanvas = h('div', { className: 'structure-preview-canvas' }, [
-      hoverPreviewTipEl,
-      hoverPreviewEmptyEl,
-    ]);
-
-    const hoverModulesLabelEl = h('span', {
-      className: 'form-label',
-      text: t('settings.str.hoverModulesLabel'),
-    });
-
-    const hoverModulesList = EditableSlotList({
-      items: draftHoverModules,
-      options: getOverviewModuleOptions(),
-      minItems: 0,
-      maxItems: 4,
-      emptyHintText: t('settings.str.hoverEmptyHint'),
-      addBtnTextFn: (count, max) => t('settings.str.addHoverModule', { count, max }),
-      onPreview: (previewItems) => {
-        draftHoverModules = normalizeClientHoverModules(previewItems);
-        refreshHoverPreview();
-      },
-      onChange: (nextItems) => {
-        draftHoverModules = normalizeClientHoverModules(nextItems);
-        syncHoverSectionMeta();
-        props.onLayoutChange?.();
-        void persistStructurePatch(hoverSection, {
-          hoverModules: draftHoverModules,
-        });
-      },
-    });
-
-    const hoverSection = CollapsibleSection({
-      collapsible: false,
-      icon: 'layers',
-      title: t('settings.str.hoverSection'),
-      badgeText: t('settings.str.hoverBadgeCount', { count: draftHoverModules.length }),
-      onReset: () => {
-        draftHoverModules = [...DEFAULT_CLIENT_HOVER_MODULES];
-        syncHoverSectionMeta();
-        props.onLayoutChange?.();
-        void persistStructurePatch(
-          hoverSection,
-          { hoverModules: [...DEFAULT_CLIENT_HOVER_MODULES] },
-          'settings.resetDone'
-        );
-      },
-      children: [
-        hoverPreviewCanvas,
-        h('div', { className: 'settings-divider' }),
-        h('div', { className: 'form-row' }, [hoverModulesLabelEl, hoverModulesList.el]),
-      ],
-    });
-
-    function refreshHoverPreview() {
-      if (!isStructureVisible() || activeThirdTab !== 'hover') return;
-      const hasModules = draftHoverModules.length > 0;
-      patchAttr(hoverPreviewTipEl, 'hidden', !hasModules);
-      patchAttr(hoverPreviewEmptyEl, 'hidden', hasModules);
-      patchText(hoverPreviewEmptyEl, t('settings.str.hoverEmptyHint'));
-      hoverPreviewHost.update({
-        moduleKeys: draftHoverModules,
-        data: buildDraftTelemetry(),
-      });
-    }
-
-    function syncHoverSectionMeta() {
-      hoverModulesList.refs.setProps({
-        items: draftHoverModules,
-        options: getOverviewModuleOptions(),
-        emptyHintText: t('settings.str.hoverEmptyHint'),
-        addBtnTextFn: (count, max) => t('settings.str.addHoverModule', { count, max }),
-      });
-      hoverSection.refs.setBadge(
-        draftHoverModules.length === 0
-          ? t('settings.str.hoverBadgeOff')
-          : t('settings.str.hoverBadgeCount', { count: draftHoverModules.length })
-      );
-      hoverSection.refs.setResetDisabled(
-        isSameList(draftHoverModules, DEFAULT_CLIENT_HOVER_MODULES)
-      );
-      refreshHoverPreview();
-    }
-
-    // --- Pane 3: 实时监控布局 (`overview`) ---
+    // --- Pane 2: 实时监控布局 (`overview`) ---
     const overviewPreviewContainerEl = h('div', { className: 'overview-modules-host is-preview' });
     const overviewPreviewHost = createDynamicWidgetHost({
       containerEl: overviewPreviewContainerEl,
@@ -15208,11 +14386,6 @@ const SettingsStructureTab = defineComponent({
 
     function syncPreviewTickers() {
       const visible = isStructureVisible();
-      if (visible && activeThirdTab === 'hover') {
-        hoverPreviewHost.resumeTickers();
-      } else {
-        hoverPreviewHost.pauseTickers();
-      }
       if (visible && activeThirdTab === 'overview') {
         overviewPreviewHost.resumeTickers();
       } else {
@@ -15226,7 +14399,6 @@ const SettingsStructureTab = defineComponent({
     function refreshActivePreview() {
       if (!isStructureVisible()) return;
       if (activeThirdTab === 'mount') refreshMountPreview();
-      else if (activeThirdTab === 'hover') refreshHoverPreview();
       else if (activeThirdTab === 'overview') refreshOverviewPreview();
       else if (activeThirdTab === 'steps') refreshStepsPreview();
     }
@@ -15240,7 +14412,6 @@ const SettingsStructureTab = defineComponent({
         patchAttr(entry.btn, 'aria-selected', isActive ? 'true' : 'false');
       }
       patchAttr(mountSection.el, 'hidden', nextTab !== 'mount');
-      patchAttr(hoverSection.el, 'hidden', nextTab !== 'hover');
       patchAttr(overviewSection.el, 'hidden', nextTab !== 'overview');
       patchAttr(stepsSection.el, 'hidden', nextTab !== 'steps');
       refreshActivePreview();
@@ -15250,30 +14421,15 @@ const SettingsStructureTab = defineComponent({
 
     const rootEl = h('div', { className: 'settings-tab-stack' }, [
       mountSection.el,
-      hoverSection.el,
       overviewSection.el,
       stepsSection.el,
     ]);
 
-    function renderSettings(
-      settings,
-      windowBridge = latestWindowBridge,
-      hostPlatform = latestHostPlatform
-    ) {
+    function renderSettings(settings) {
       if (!settings) return;
       latestSettings = settings;
-      if (windowBridge !== undefined) latestWindowBridge = windowBridge;
-      if (hostPlatform) latestHostPlatform = hostPlatform;
-      draftWindowMountMode = normalizeClientWindowMountMode(
-        settings.windowMountMode,
-        settings.enableWindowOverlay
-      );
-      draftPopoverWidthMode = normalizeClientPopoverWidthMode(settings.popoverWidthMode);
-      draftPopoverWidth = normalizeClientPopoverWidth(settings.popoverWidth);
       draftEnableCliStatusLine = settings.enableCliStatusLine !== false;
-      draftShowTopbarMulti = settings.showTopbarMultiSession !== false;
       draftTopbarSlots = normalizeClientTopbarSlots(settings.topbarCapsuleSlots);
-      draftHoverModules = normalizeClientHoverModules(settings.hoverModules);
       draftOverviewModules = normalizeClientOverviewModules(settings.overviewModules);
       draftOverviewMetrics = normalizeClientOverviewMetrics(settings.overviewMetrics);
       draftShowStepTurnRail = settings.showStepTurnRail === true;
@@ -15286,7 +14442,6 @@ const SettingsStructureTab = defineComponent({
       draftStepColumns = normalizeClientStepColumns(settings.stepTableColumns);
 
       syncMountSectionMeta();
-      syncHoverSectionMeta();
       syncOverviewSectionMeta();
       syncStepsSectionMeta();
     }
@@ -15299,17 +14454,8 @@ const SettingsStructureTab = defineComponent({
 
       mountSection.refs.setTitle(t('settings.str.mountSection'));
       mountSection.refs.setResetLabel(t('settings.resetBtn'));
-      patchText(mountModeLabelEl, t('settings.str.mountMode'));
-      patchText(popoverWidthLabelEl, t('settings.str.popoverWidthLabel'));
-      patchText(popoverWidthHintEl, t('settings.str.popoverWidthHint'));
-      popoverWidthStepper.setProps({ ariaLabel: t('settings.str.popoverWidthLabel') });
-      patchText(multiToggleLabelEl, t('settings.str.multiToggle'));
       patchText(cliCapsuleLabelEl, t('settings.str.cliCapsuleToggle'));
       patchText(capsuleSlotsLabelEl, t('settings.str.capsuleSlotsLabel'));
-
-      hoverSection.refs.setTitle(t('settings.str.hoverSection'));
-      hoverSection.refs.setResetLabel(t('settings.resetBtn'));
-      patchText(hoverModulesLabelEl, t('settings.str.hoverModulesLabel'));
 
       overviewSection.refs.setTitle(t('settings.str.overviewSection'));
       overviewSection.refs.setResetLabel(t('settings.resetBtn'));
@@ -15329,7 +14475,6 @@ const SettingsStructureTab = defineComponent({
       patchText(stepColsLabelEl, t('settings.str.stepsColsLabel'));
 
       syncMountSectionMeta();
-      syncHoverSectionMeta();
       syncOverviewSectionMeta();
       syncStepsSectionMeta();
     }
@@ -15358,7 +14503,6 @@ const SettingsStructureTab = defineComponent({
     );
 
     syncMountSectionMeta();
-    syncHoverSectionMeta();
     syncOverviewSectionMeta();
     syncStepsSectionMeta();
     applyActiveThirdTab(activeThirdTab);
@@ -15366,16 +14510,10 @@ const SettingsStructureTab = defineComponent({
     onCleanup(() => {
       unsubUi();
       capsulePreviewWidget.destroy();
-      hoverPreviewHost.destroy();
       overviewPreviewHost.destroy();
       stepTablePreview.destroy();
-      windowMountSelect.destroy();
-      popoverWidthStepper.destroy();
-      popoverWidthModeToggle.destroy();
-      multiSessionToggle.destroy();
       cliCapsuleToggle.destroy();
       topbarSlotsList.destroy();
-      hoverModulesList.destroy();
       overviewModulesList.destroy();
       overviewMetricsList.destroy();
       stepTurnRailToggle.destroy();
@@ -15383,7 +14521,6 @@ const SettingsStructureTab = defineComponent({
       stepSpeedColorToggle.destroy();
       stepColumnsList.destroy();
       mountSection.destroy();
-      hoverSection.destroy();
       overviewSection.destroy();
       stepsSection.destroy();
     });
@@ -15393,14 +14530,10 @@ const SettingsStructureTab = defineComponent({
       refs: {
         thirdNavBar,
         capsulePreviewWidget,
-        hoverPreviewHost,
         overviewPreviewHost,
         stepTablePreview,
-        windowMountSelect,
-        multiSessionToggle,
         cliCapsuleToggle,
         topbarSlotsList,
-        hoverModulesList,
         overviewModulesList,
         overviewMetricsList,
         stepTurnRailToggle,
@@ -15408,7 +14541,6 @@ const SettingsStructureTab = defineComponent({
         stepSpeedColorToggle,
         stepColumnsList,
         mountSection,
-        hoverSection,
         overviewSection,
         stepsSection,
         renderSettings,
@@ -15424,7 +14556,7 @@ return { SettingsStructureTab };
 const { SettingsOtherTab } = (() => {
 /**
  * @fileoverview Preferences Tab 3: `SettingsOtherTab.js` ("其他").
- * Houses Model Identifier Formatting, Per-Model Context Windows,
+ * Houses Model Identifier Formatting,
  * Local Trajectory Cache Rebuild, and Two-Step Factory Preference Reset.
  */
 
@@ -15446,18 +14578,10 @@ function getOrchestratorIdDisplayOptions() {
 
 const SettingsOtherTab = defineComponent({
   name: 'SettingsOtherTab',
-  setup({ onCleanup, getProps }) {
+  setup({ onCleanup }) {
     let draftModelDisplayMode = 'short';
     let draftOrchestratorIdMode = 'compact';
-    let draftContextRiskAccepted = false;
-    let acceptingContextRisk = false;
     let latestSettings = null;
-    let latestWindowBridge = null;
-    let latestHostPlatform = 'win32';
-    let contextWindowModels = [];
-    let contextModelId = '';
-    let savingContextWindow = false;
-    let contextFeedback = '';
     let modelTimer = null;
     let maintTimer = null;
     let resetConfirmTimer = null;
@@ -15568,208 +14692,7 @@ const SettingsOtherTab = defineComponent({
       h('div', { className: 'form-row' }, [orchFormatLabelEl, orchestratorIdSelect.el]),
     ]);
 
-    // --- Card 2: 按模型设置上下文窗口 ---
-    const baselineTitleEl = h('span', { text: t('settings.oth.baselineTitle') });
-    const ctxModelLabel = h('span', { className: 'form-label' });
-    const ctxWindowLabel = h('span', { className: 'form-label' });
-    const ctxHint = h('span', { className: 'settings-hint-text' });
-    const ctxStatus = h('span', { className: 'text-muted', role: 'status' });
-    const ctxModelSelect = CustomSelect({
-      className: 'settings-context-model',
-      options: [],
-      onUpdateModelValue: (id) => {
-        if (!draftContextRiskAccepted || savingContextWindow) return;
-        contextModelId = id;
-        contextFeedback = '';
-        renderContextWindows();
-      },
-    });
-    const ctxWindowSelect = CustomSelect({
-      options: [],
-      onUpdateModelValue: async (value) => {
-        if (!draftContextRiskAccepted || savingContextWindow || !contextModelId) return;
-        savingContextWindow = true;
-        contextFeedback = 'settings.saving';
-        renderContextWindows();
-        try {
-          const modelContextWindows = await saveModelContextWindow(contextModelId, value || null);
-          latestSettings = { ...latestSettings, modelContextWindows };
-          contextFeedback = 'settings.saved';
-        } catch {
-          contextFeedback = 'settings.saveFailed';
-        } finally {
-          savingContextWindow = false;
-          renderContextWindows();
-        }
-      },
-    });
-    const ctxModelRow = h('div', { className: 'form-row' }, [ctxModelLabel, ctxModelSelect.el]);
-    const ctxWindowRow = h('div', { className: 'form-row' }, [ctxWindowLabel, ctxWindowSelect.el]);
-    const ctxControlsBody = h('div', { className: 'ctx-controls-body is-locked' }, [
-      ctxModelRow,
-      ctxWindowRow,
-      h('div', { className: 'form-row' }, [ctxHint]),
-    ]);
-
-    const ctxRiskTitleEl = h('strong', {
-      className: 'ctx-risk-title',
-      text: t('settings.oth.ctxRiskTitle'),
-    });
-    const ctxRiskBodyEl = h('p', {
-      className: 'ctx-risk-desc',
-      text: t('settings.oth.ctxRiskBody'),
-    });
-    const ctxRiskAcceptBtnText = h('span', { text: t('settings.oth.ctxRiskAcceptBtn') });
-    const ctxRiskAcceptBtn = h(
-      'button',
-      {
-        type: 'button',
-        className: 'btn-secondary btn-danger-confirm ctx-risk-accept-btn',
-        onClick: async () => {
-          if (acceptingContextRisk || draftContextRiskAccepted) return;
-          acceptingContextRisk = true;
-          draftContextRiskAccepted = true;
-          latestSettings = { ...(latestSettings || {}), contextWindowRiskAccepted: true };
-          contextFeedback = 'settings.saving';
-          renderContextWindows();
-          try {
-            await saveSettingsPatch({ contextWindowRiskAccepted: true });
-            contextFeedback = 'settings.saved';
-          } catch {
-            draftContextRiskAccepted = false;
-            latestSettings = { ...(latestSettings || {}), contextWindowRiskAccepted: false };
-            contextFeedback = 'settings.saveFailed';
-          } finally {
-            acceptingContextRisk = false;
-            renderContextWindows();
-          }
-        },
-      },
-      [createSvgIcon('warning', { size: 12 }), ctxRiskAcceptBtnText]
-    );
-    const ctxRiskMask = h(
-      'div',
-      {
-        className: 'ctx-risk-mask',
-        role: 'region',
-        'aria-label': t('settings.oth.ctxRiskTitle'),
-      },
-      [
-        h('div', { className: 'ctx-risk-head' }, [
-          createSvgIcon('warning', { size: 14, className: 'ctx-risk-icon' }),
-          ctxRiskTitleEl,
-        ]),
-        ctxRiskBodyEl,
-        ctxRiskAcceptBtn,
-      ]
-    );
-    const ctxRiskStage = h('div', { className: 'ctx-risk-stage' }, [ctxControlsBody, ctxRiskMask]);
-
-    function renderContextWindows() {
-      const unlocked = Boolean(draftContextRiskAccepted);
-      if (!unlocked) {
-        ctxModelSelect.close();
-        ctxWindowSelect.close();
-      }
-      patchClasses(ctxControlsBody, { 'is-locked': !unlocked });
-      patchAttr(ctxControlsBody, 'inert', !unlocked);
-      patchAttr(ctxControlsBody, 'aria-hidden', unlocked ? null : 'true');
-      patchAttr(ctxRiskMask, 'hidden', unlocked);
-      patchAttr(ctxRiskMask, 'aria-label', t('settings.oth.ctxRiskTitle'));
-      patchText(ctxRiskTitleEl, t('settings.oth.ctxRiskTitle'));
-      patchText(ctxRiskBodyEl, t('settings.oth.ctxRiskBody'));
-      patchText(ctxRiskAcceptBtnText, t('settings.oth.ctxRiskAcceptBtn'));
-      patchAttr(ctxRiskAcceptBtn, 'disabled', acceptingContextRisk);
-
-      const saved = latestSettings?.modelContextWindows || {};
-      const models = new Map(contextWindowModels.map((model) => [model.id, model]));
-      const knownIds = new Set(contextWindowModels.flatMap(({ id, members = [] }) => [id, ...members]));
-      for (const id of Object.keys(saved)) {
-        if (!knownIds.has(id)) models.set(id, { id, label: id.replace(/^model:/, ''), options: [] });
-      }
-      if (!models.has(contextModelId)) contextModelId = '';
-      const mixed = '\u0000mixed';
-      const getSelection = ({ id, members = [] }) => {
-        const legacy = new Set(members.map((member) => saved[member]).filter(Boolean));
-        return saved[id] || (legacy.size > 1 ? mixed : legacy.values().next().value) || '';
-      };
-      const formatLimit = (value) => /^\d+$/.test(value) ? t('settings.oth.ctxTokens', { count: Number(value).toLocaleString() }) : value;
-      const isAvailable = (model, value) => model.options.some(({ name }) => name === value) ||
-        (/^[1-9]\d*$/.test(value) && Number(value) <= model.capacity);
-      const current = models.get(contextModelId);
-      const options = current?.options || [];
-      const selected = current ? getSelection(current) : '';
-      const choices = [
-        { value: '', label: t('settings.oth.ctxDefault') },
-        ...options.map(({ name, expensive, tokens }) => ({
-          value: name,
-          label: tokens ? formatLimit(name) :
-            (expensive ? t('settings.oth.ctxExpensive', { name }) : name),
-        })),
-      ];
-      if (selected && !choices.some((item) => item.value === selected)) {
-        let label = t('settings.oth.ctxMixed');
-        if (selected !== mixed) {
-          const name = formatLimit(selected);
-          label = isAvailable(current, selected) ? name : t('settings.oth.ctxUnavailable', { name });
-        }
-        choices.push({ value: selected, label, disabled: true });
-      }
-      ctxModelSelect.setProps({
-        modelValue: contextModelId,
-        options: [
-          { value: '', label: t('settings.oth.ctxChooseModel') },
-          ...[...models.values()].map((model) => {
-            const value = getSelection(model);
-            let meta = t('settings.oth.ctxDefault');
-            if (value === mixed) meta = t('settings.oth.ctxMixed');
-            else if (value) {
-              const name = formatLimit(value);
-              if (!isAvailable(model, value)) meta = t('settings.oth.ctxUnavailable', { name });
-              else if (isBridgeMissing) meta = t('settings.oth.ctxPendingBridge', { name });
-              else if (/^\d+$/.test(value) && model.reportedLimitTokens && Number(value) !== model.reportedLimitTokens) {
-                meta = t('settings.oth.ctxConfiguredReported', {
-                  name,
-                  reported: formatLimit(String(model.reportedLimitTokens)),
-                });
-              } else meta = t('settings.oth.ctxConfigured', { name });
-            }
-            else if (model.reportedLimitTokens) meta = t('settings.oth.ctxDefaultReported', { name: formatLimit(String(model.reportedLimitTokens)) });
-            return { value: model.id, label: model.label, meta };
-          }),
-        ],
-      });
-      ctxWindowSelect.setProps({ modelValue: selected, options: choices });
-      patchAttr(ctxModelSelect.refs.triggerBtn, 'disabled', !unlocked || savingContextWindow);
-      patchAttr(ctxWindowSelect.refs.triggerBtn, 'disabled', !unlocked || savingContextWindow || (!options.length && !selected));
-      patchAttr(ctxModelSelect.refs.triggerBtn, 'aria-label', t('settings.oth.ctxModel'));
-      patchAttr(ctxWindowSelect.refs.triggerBtn, 'aria-label', t('settings.oth.ctxBaselineLabel'));
-      patchAttr(ctxModelRow, 'hidden', !models.size);
-      patchAttr(ctxWindowRow, 'hidden', !contextModelId);
-      patchText(ctxModelLabel, t('settings.oth.ctxModel'));
-      patchText(ctxWindowLabel, t('settings.oth.ctxBaselineLabel'));
-      const hint = !models.size ? 'ctxNoModels' : selected === mixed ? 'ctxMixedHint' :
-        contextModelId && !options.length ? 'ctxNoOptions' : 'ctxBaselineHint';
-      const reported = current?.reportedLimitTokens;
-      patchText(ctxHint, [t(`settings.oth.${hint}`), reported &&
-        t('settings.oth.ctxReported', { name: formatLimit(String(reported)) })].filter(Boolean).join(' '));
-      patchText(ctxStatus, contextFeedback ? t(contextFeedback) : '');
-      getProps().onLayoutChange?.();
-    }
-
-    const baselinePanel = h('section', { className: 'panel' }, [
-      h('div', { className: 'panel-header' }, [
-        h('span', { className: 'panel-title' }, [
-          createSvgIcon('layers', { size: 13 }),
-          baselineTitleEl,
-        ]),
-        ctxStatus,
-      ]),
-      ctxRiskStage,
-    ]);
-    renderContextWindows();
-
-    // --- Card 3: 缓存与重置 ---
+    // --- Card 2: 缓存与重置 ---
     const maintTitleEl = h('span', { text: t('settings.oth.maintTitle') });
     const cacheLabelEl = h('span', {
       className: 'settings-action-title',
@@ -15893,29 +14816,17 @@ const SettingsOtherTab = defineComponent({
 
     const rootEl = h('div', { className: 'settings-tab-stack' }, [
       modelPanel,
-      baselinePanel,
       maintPanel,
     ]);
 
-    function renderSettings(
-      settings,
-      models = contextWindowModels,
-      windowBridge = latestWindowBridge,
-      hostPlatform = latestHostPlatform
-    ) {
+    function renderSettings(settings) {
       if (!settings) return;
       latestSettings = settings;
-      contextWindowModels = models;
-      if (windowBridge !== undefined) latestWindowBridge = windowBridge;
-      if (hostPlatform) latestHostPlatform = hostPlatform;
       draftModelDisplayMode = normalizeClientModelDisplayMode(
         settings.modelDisplayMode,
         settings.showUpstreamModel
       );
       draftOrchestratorIdMode = normalizeClientOrchestratorIdMode(settings.orchestratorIdMode);
-      if (!acceptingContextRisk) {
-        draftContextRiskAccepted = Boolean(settings.contextWindowRiskAccepted);
-      }
       stepModelSelect.setProps({
         modelValue: draftModelDisplayMode,
         options: getStepModelDisplayOptions(),
@@ -15924,15 +14835,12 @@ const SettingsOtherTab = defineComponent({
         modelValue: draftOrchestratorIdMode,
         options: getOrchestratorIdDisplayOptions(),
       });
-      renderContextWindows();
     }
 
     function refreshLabels() {
       patchText(modelCardTitleEl, t('settings.oth.modelTitle'));
       patchText(modelFormatLabelEl, t('settings.oth.modelFormat'));
       patchText(orchFormatLabelEl, t('settings.oth.orchFormat'));
-      patchText(baselineTitleEl, t('settings.oth.baselineTitle'));
-      renderContextWindows();
       patchText(maintTitleEl, t('settings.oth.maintTitle'));
       patchText(cacheLabelEl, t('settings.oth.cacheLabel'));
       patchText(cacheDescEl, t('settings.oth.cacheDesc'));
@@ -15965,8 +14873,6 @@ const SettingsOtherTab = defineComponent({
       if (resetConfirmTimer) clearTimeout(resetConfirmTimer);
       stepModelSelect.destroy();
       orchestratorIdSelect.destroy();
-      ctxModelSelect.destroy();
-      ctxWindowSelect.destroy();
     });
 
     return {
@@ -15974,8 +14880,6 @@ const SettingsOtherTab = defineComponent({
       refs: {
         stepModelSelect,
         orchestratorIdSelect,
-        ctxModelSelect,
-        ctxWindowSelect,
         rebuildCacheBtn,
         resetAllBtn,
         renderSettings,
@@ -18396,21 +17300,18 @@ return { StepsDetailView };
 })();
 
 // --- src/views/SettingsView.js ---
-const { SHOW_ACCOUNT_TAB, SettingsView } = (() => {
+const { SettingsView } = (() => {
 /**
- * @fileoverview View 4: Modular preferences ("常规" / "结构" / "账号" / "其他").
- * Orchestrates the four preference tabs
+ * @fileoverview View 4: Modular preferences ("常规" / "结构" / "其他").
+ * Orchestrates the three preference tabs
  * with top sub-navigation and a shared `CustomScrollbar` viewport.
  */
 
-
-const SHOW_ACCOUNT_TAB = false;
 
 function getSettingsSubTabOptions() {
   return [
     { value: 'general', label: t('settings.subTab.general') },
     { value: 'structure', label: t('settings.subTab.structure') },
-    ...(SHOW_ACCOUNT_TAB ? [{ value: 'account', label: t('settings.subTab.account') }] : []),
     { value: 'other', label: t('settings.subTab.other') },
   ];
 }
@@ -18440,15 +17341,11 @@ const SettingsView = defineComponent({
 
     const generalTab = SettingsGeneralTab({ onLayoutChange: refreshScroll });
     const structureTab = SettingsStructureTab({ onLayoutChange: refreshScroll });
-    const accountTab = null; // SettingsAccountTab kept in src/views/settings/ for future opt-in
     const otherTab = SettingsOtherTab({ onLayoutChange: refreshScroll });
 
-    let showingAccount = false;
-    function applyActiveSubTab(subTab, activeView) {
+    function applyActiveSubTab(subTab) {
       const target =
-        subTab === 'structure' ||
-        subTab === 'other' ||
-        (accountTab && subTab === 'account')
+        subTab === 'structure' || subTab === 'other'
           ? subTab
           : 'general';
       subNavSwitch.setValue(target);
@@ -18456,28 +17353,16 @@ const SettingsView = defineComponent({
       patchAttr(structureTab.el, 'hidden', target !== 'structure');
       patchAttr(structureTab.refs.thirdNavBar, 'hidden', target !== 'structure');
       patchAttr(otherTab.el, 'hidden', target !== 'other');
-      if (accountTab) {
-        patchAttr(accountTab.el, 'hidden', target !== 'account');
-        const nextShowingAccount = target === 'account' && activeView === 'settings';
-        if (nextShowingAccount && !showingAccount) void accountTab.refs.load();
-        showingAccount = nextShowingAccount;
-      }
       refreshScroll();
     }
 
-    const contentContainer = h(
-      'div',
-      {},
-      accountTab
-        ? [generalTab.el, structureTab.el, accountTab.el, otherTab.el]
-        : [generalTab.el, structureTab.el, otherTab.el]
-    );
+    const contentContainer = h('div', {}, [generalTab.el, structureTab.el, otherTab.el]);
     viewScrollbar = CustomScrollbar({
       contentEl: contentContainer,
       className: 'view-pane',
     });
 
-    applyActiveSubTab(initialSubTab, uiStore.getState().activeView);
+    applyActiveSubTab(initialSubTab);
 
     const rootEl = h('div', { className: 'settings-view-root' }, [
       subNavBar,
@@ -18493,23 +17378,12 @@ const SettingsView = defineComponent({
       const settings = telemetry?.settings;
       if (settingsSubTab === 'structure') {
         if (settings) {
-          structureTab.refs.renderSettings(
-            settings,
-            telemetry?.windowBridge,
-            telemetry?.hostPlatform
-          );
+          structureTab.refs.renderSettings(settings);
         }
       } else if (settingsSubTab === 'other') {
         if (settings) {
-          otherTab.refs.renderSettings(
-            settings,
-            telemetry.contextWindowModels || [],
-            telemetry?.windowBridge,
-            telemetry?.hostPlatform
-          );
+          otherTab.refs.renderSettings(settings);
         }
-      } else if (accountTab && settingsSubTab === 'account') {
-        accountTab.refs.renderAccount(telemetry?.account, telemetry?.quotas);
       } else {
         if (settings) generalTab.refs.renderSettings(settings);
         if (telemetry?.cloudStatus) generalTab.refs.renderCloudStatus(telemetry.cloudStatus);
@@ -18520,12 +17394,7 @@ const SettingsView = defineComponent({
     const unsubTelemetry = telemetryStore.subscribe(
       (st) => ({
         settings: st.telemetry?.settings,
-        windowBridge: st.telemetry?.windowBridge,
-        hostPlatform: st.telemetry?.hostPlatform,
         cloudStatus: st.telemetry?.cloudStatus,
-        contextWindowModels: st.telemetry?.contextWindowModels,
-        account: st.telemetry?.account,
-        quotas: st.telemetry?.quotas,
       }),
       syncActiveTab
     );
@@ -18536,7 +17405,7 @@ const SettingsView = defineComponent({
         settingsSubTab: st.settingsSubTab,
       }),
       (slice) => {
-        applyActiveSubTab(slice.settingsSubTab, slice.activeView);
+        applyActiveSubTab(slice.settingsSubTab);
         syncActiveTab();
       }
     );
@@ -18550,7 +17419,6 @@ const SettingsView = defineComponent({
         });
         generalTab.refs.refreshLabels();
         structureTab.refs.refreshLabels();
-        accountTab?.refs.refreshLabels();
         otherTab.refs.refreshLabels();
         refreshScroll();
       }
@@ -18563,7 +17431,6 @@ const SettingsView = defineComponent({
       subNavSwitch.destroy();
       generalTab.destroy();
       structureTab.destroy();
-      accountTab?.destroy();
       otherTab.destroy();
       viewScrollbar.destroy();
     });
@@ -18574,12 +17441,9 @@ const SettingsView = defineComponent({
         subNavSwitch,
         generalTab,
         structureTab,
-        accountTab,
         otherTab,
         viewScrollbar,
         // Convenience aliases for external callers / tests
-        windowMountSelect: structureTab.refs.windowMountSelect,
-        multiSessionToggle: structureTab.refs.multiSessionToggle,
         topbarSlotsList: structureTab.refs.topbarSlotsList,
         stepModelSelect: otherTab.refs.stepModelSelect,
         orchestratorIdSelect: otherTab.refs.orchestratorIdSelect,
@@ -18588,7 +17452,7 @@ const SettingsView = defineComponent({
     };
   },
 });
-return { SHOW_ACCOUNT_TAB, SettingsView };
+return { SettingsView };
 })();
 
 // --- src/App.js ---

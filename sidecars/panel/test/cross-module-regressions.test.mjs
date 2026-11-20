@@ -1116,13 +1116,13 @@ test('P1 audit fixes: shared third-party pool & route single-source, pure frozen
   const { buildStructurePreviewTelemetry } = await import(
     '../src/components/settings/structurePreviewMock.js'
   );
-  const { BRIDGE_API_ROUTE_DEFS } = await import('../shared/window-bridge-protocol.mjs');
+  const { PANEL_API_ROUTE_DEFS } = await import('../shared/api-routes.mjs');
 
   assert.equal(normalizeI18nLanguage('system'), 'auto');
   assert.equal(typeof isEquivalentTelemetry, 'function');
-  assert.equal(BRIDGE_API_ROUTE_DEFS.length, 7);
-  assert.ok(BRIDGE_API_ROUTE_DEFS.some((r) => r.path === '/api/telemetry'));
-  assert.equal(BRIDGE_API_ROUTE_DEFS.some((r) => r.path === '/api/bridge/relaunch'), false);
+  assert.equal(PANEL_API_ROUTE_DEFS.length, 7);
+  assert.ok(PANEL_API_ROUTE_DEFS.some((r) => r.path === '/api/telemetry'));
+  assert.equal(PANEL_API_ROUTE_DEFS.some((r) => r.path === '/api/bridge/relaunch'), false);
 
   // 1. Third-party pool parity across backend, CLI statusline, and frontend metricRegistry
   const h = backendHarness();

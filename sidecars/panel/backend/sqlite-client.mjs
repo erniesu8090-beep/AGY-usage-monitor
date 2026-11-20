@@ -97,7 +97,7 @@ export function computeSqliteWalSig(dbPath) {
   };
 }
 
-export function isSqliteBusyError(err) {
+function isSqliteBusyError(err) {
   const msg = String(err?.message || err?.code || '');
   return /SQLITE_BUSY|database is locked/i.test(msg);
 }

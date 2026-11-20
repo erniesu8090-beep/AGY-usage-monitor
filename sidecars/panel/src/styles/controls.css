@@ -4,8 +4,7 @@
  * 1. 顶部会话控制栏 (.session-header, .status-tag, .icon-btn, .update-badge-btn)
  * 2. 顶部唯一长药丸导航栏 (.long-pill-nav, .pill-glider, .pill-tab)
  * 3. 定制下拉选择器 (.custom-select)
- * 4. 定制步进数字输入框 (.number-input)
- * 5. 定制日期时间选择器 (.datetime-picker)
+ * 4. 定制日期时间选择器 (.datetime-picker)
  * 6. 微边框分段控制器 (.segmented)
  * 7. 独立轨道槽自定义滚动条 (.custom-scroll-host)
  * 8. 设置表单行与主次操作按钮 (.form-row, .btn-primary, .btn-secondary, .cloud-actions-row)
@@ -388,56 +387,6 @@
 
 .select-checkbox .svg-icon {
   stroke-width: 2.4;
-}
-
-/* --- 4. 定制步进数字框 (Bespoke Custom Number Input，零原生 <input type="number">) --- */
-.number-input {
-  display: inline-flex;
-  align-items: stretch;
-  min-height: calc(28px * var(--ui-font-scale, 1));
-  background: var(--surface-panel);
-  border: 1px solid var(--border-hairline);
-  border-radius: var(--radius-xs);
-  overflow: hidden;
-}
-
-.number-input:focus-within {
-  border-color: var(--accent-primary);
-}
-
-.num-step-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  border: none;
-  background: var(--surface-panel);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background-color var(--dur-instant) var(--ease-fast), color var(--dur-instant) var(--ease-fast);
-}
-
-.num-step-btn:hover {
-  background: var(--surface-hover);
-  color: var(--text-primary);
-}
-
-.num-step-btn:active {
-  background: var(--surface-active);
-}
-
-.num-field {
-  flex: 1;
-  min-width: 90px;
-  padding: 0 var(--space-3);
-  border: none;
-  border-left: 1px solid var(--border-hairline);
-  border-right: 1px solid var(--border-hairline);
-  background: transparent;
-  color: var(--text-primary);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  outline: none;
 }
 
 /* --- 5. 定制日期时间选择器 (Bespoke Custom DateTime Picker) --- */

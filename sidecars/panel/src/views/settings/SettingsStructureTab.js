@@ -1,8 +1,8 @@
 /**
  * @fileoverview Preferences Tab 2: `SettingsStructureTab.js` ("结构").
- * Organizes the 4 structure settings panes under a dedicated 3rd-level menu bar,
+ * Organizes the 3 structure settings panes under a dedicated 3rd-level menu bar,
  * renders live previews powered by the decoupled real UI components (`CapsuleBarWidget`,
- * `createDynamicWidgetHost` in `hover` / `overview` modes, and `StepTableWidget`)
+ * `createDynamicWidgetHost` in `overview` mode, and `StepTableWidget`)
  * with simulated telemetry, and supports smooth mouse drag-and-drop reordering.
  */
 
@@ -20,46 +20,35 @@ import {
   getOverviewModuleOptions,
 } from '../../registries/widgetRegistry.js';
 import {
-  DEFAULT_CLIENT_HOVER_MODULES,
   DEFAULT_CLIENT_OVERVIEW_METRICS,
   DEFAULT_CLIENT_OVERVIEW_MODULES,
-  DEFAULT_CLIENT_POPOVER_WIDTH,
   DEFAULT_CLIENT_STEP_COLUMNS,
   DEFAULT_CLIENT_STEP_TOKEN_COMBO_FORMAT,
   DEFAULT_CLIENT_TOPBAR_SLOTS,
-  MAX_CLIENT_POPOVER_WIDTH,
-  MIN_CLIENT_POPOVER_WIDTH,
-  normalizeClientHoverModules,
   normalizeClientOverviewMetrics,
   normalizeClientOverviewModules,
-  normalizeClientPopoverWidth,
-  normalizeClientPopoverWidthMode,
   normalizeClientStepColumns,
   normalizeClientStepTokenComboFormat,
   normalizeClientTopbarSlots,
-  normalizeClientWindowMountMode,
   saveSettingsPatch,
 } from '../../store/telemetryStore.js';
 import { getVisibleMonitorView, uiStore } from '../../store/uiStore.js';
 import { CollapsibleSection } from '../../components/settings/CollapsibleSection.js';
 import { EditableSlotList } from '../../components/settings/EditableSlotList.js';
 import { buildStructurePreviewTelemetry } from '../../components/settings/structurePreviewMock.js';
-import { CustomNumberInput } from '../../components/ui/CustomNumberInput.js';
-import { CustomSelect } from '../../components/ui/CustomSelect.js';
 import { SegmentedControl } from '../../components/ui/SegmentedControl.js';
 import { CapsuleBarWidget } from '../../components/widgets/CapsuleBarWidget.js';
 import { StepTableWidget } from '../../components/widgets/StepTableWidget.js';
 
 const STRUCTURE_THIRD_TABS = Object.freeze([
   { key: 'mount', icon: 'dock', labelKey: 'settings.str.tabMount' },
-  { key: 'hover', icon: 'layers', labelKey: 'settings.str.tabHover' },
   { key: 'overview', icon: 'pulse', labelKey: 'settings.str.tabOverview' },
   { key: 'steps', icon: 'table', labelKey: 'settings.str.tabSteps' },
 ]);
 
 function normalizeStructureTabKey(raw) {
   const k = String(raw || '').trim();
-  return k === 'hover' || k === 'overview' || k === 'steps' ? k : 'mount';
+  return k === 'overview' || k === 'steps' ? k : 'mount';
 }
 
 function isElementFocused(el) {
@@ -67,14 +56,6 @@ function isElementFocused(el) {
   const root = typeof el.getRootNode === 'function' ? el.getRootNode() : null;
   const active = root && 'activeElement' in root ? root.activeElement : document?.activeElement;
   return active === el;
-}
-
-function getMountModeOptions() {
-  return [
-    { value: 'dual', label: t('settings.str.mountDual') },
-    { value: 'composer', label: t('settings.str.mountComposer') },
-    { value: 'sidebar', label: t('settings.str.mountSidebar') },
-  ];
 }
 
 function getMultiToggleOptions() {
@@ -91,13 +72,6 @@ function getEnableToggleOptions() {
   ];
 }
 
-function getPopoverWidthModeOptions() {
-  return [
-    { value: 'auto', label: t('settings.str.popoverWidthAuto') },
-    { value: 'custom', label: t('settings.str.popoverWidthCustom') },
-  ];
-}
-
 function isSameList(a, b) {
   if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
   for (let i = 0; i < a.length; i += 1) {
@@ -110,13 +84,8 @@ export const SettingsStructureTab = defineComponent({
   name: 'SettingsStructureTab',
   setup({ props, onCleanup }) {
     let activeThirdTab = normalizeStructureTabKey(uiStore.getState().settingsStructureTab);
-    let draftWindowMountMode = 'dual';
-    let draftPopoverWidthMode = 'auto';
-    let draftPopoverWidth = DEFAULT_CLIENT_POPOVER_WIDTH;
     let draftEnableCliStatusLine = true;
-    let draftShowTopbarMulti = true;
     let draftTopbarSlots = [...DEFAULT_CLIENT_TOPBAR_SLOTS];
-    let draftHoverModules = [...DEFAULT_CLIENT_HOVER_MODULES];
     let draftOverviewModules = [...DEFAULT_CLIENT_OVERVIEW_MODULES];
     let draftOverviewMetrics = [...DEFAULT_CLIENT_OVERVIEW_METRICS];
     let draftShowStepTurnRail = false;
@@ -126,8 +95,6 @@ export const SettingsStructureTab = defineComponent({
     let rawStepTokenComboText = DEFAULT_CLIENT_STEP_TOKEN_COMBO_FORMAT;
     let draftStepColumns = [...DEFAULT_CLIENT_STEP_COLUMNS];
     let latestSettings = null;
-    let latestWindowBridge = null;
-    let latestHostPlatform = 'win32';
 
     function isStructureVisible() {
       const st = uiStore.getState();
@@ -136,14 +103,8 @@ export const SettingsStructureTab = defineComponent({
 
     function buildDraftTelemetry() {
       return buildStructurePreviewTelemetry(latestSettings, {
-        windowMountMode: draftWindowMountMode,
-        enableWindowOverlay: draftWindowMountMode !== 'sidebar',
-        popoverWidthMode: draftPopoverWidthMode,
-        popoverWidth: draftPopoverWidth,
         enableCliStatusLine: draftEnableCliStatusLine,
-        showTopbarMultiSession: draftShowTopbarMulti,
         topbarCapsuleSlots: draftTopbarSlots,
-        hoverModules: draftHoverModules,
         overviewModules: draftOverviewModules,
         overviewMetrics: draftOverviewMetrics,
         showStepTurnRail: draftShowStepTurnRail,
@@ -206,28 +167,12 @@ export const SettingsStructureTab = defineComponent({
       thirdNavBtns
     );
 
-    // --- Pane 1: 挂载与胶囊栏 (`mount`) ---
+    // --- Pane 1: 狀態膠囊與 CLI 狀態列 (`mount`) ---
     const capsulePreviewWidget = CapsuleBarWidget({});
     const mountPreviewCanvas = h('div', { className: 'structure-preview-canvas' }, [
       capsulePreviewWidget.el,
     ]);
 
-    const mountModeLabelEl = h('span', {
-      className: 'form-label',
-      text: t('settings.str.mountMode'),
-    });
-    const popoverWidthLabelEl = h('span', {
-      className: 'form-label',
-      text: t('settings.str.popoverWidthLabel'),
-    });
-    const popoverWidthHintEl = h('span', {
-      className: 'settings-hint-text',
-      text: t('settings.str.popoverWidthHint'),
-    });
-    const multiToggleLabelEl = h('span', {
-      className: 'form-label',
-      text: t('settings.str.multiToggle'),
-    });
     const cliCapsuleLabelEl = h('span', {
       className: 'form-label',
       text: t('settings.str.cliCapsuleToggle'),
@@ -235,74 +180,6 @@ export const SettingsStructureTab = defineComponent({
     const capsuleSlotsLabelEl = h('span', {
       className: 'form-label',
       text: t('settings.str.capsuleSlotsLabel'),
-    });
-
-    const windowMountSelect = CustomSelect({
-      modelValue: draftWindowMountMode,
-      icon: 'dock',
-      options: getMountModeOptions(),
-      onUpdateModelValue: (val) => {
-        const nextMode = normalizeClientWindowMountMode(val);
-        draftWindowMountMode = nextMode;
-        syncMountSectionMeta();
-        props.onLayoutChange?.();
-        void persistStructurePatch(mountSection, {
-          windowMountMode: nextMode,
-          enableWindowOverlay: nextMode !== 'sidebar',
-        });
-      },
-    });
-
-    const popoverWidthStepper = CustomNumberInput({
-      modelValue: draftPopoverWidth,
-      min: MIN_CLIENT_POPOVER_WIDTH,
-      max: MAX_CLIENT_POPOVER_WIDTH,
-      step: 10,
-      ariaLabel: t('settings.str.popoverWidthLabel'),
-      onUpdateModelValue: (val) => {
-        const nextWidth = normalizeClientPopoverWidth(val);
-        draftPopoverWidth = nextWidth;
-        syncMountSectionMeta();
-        props.onLayoutChange?.();
-        void persistStructurePatch(mountSection, {
-          popoverWidthMode: draftPopoverWidthMode,
-          popoverWidth: draftPopoverWidth,
-        });
-      },
-    });
-
-    const popoverWidthNumWrap = h(
-      'span',
-      { className: 'settings-number-wrap', hidden: draftPopoverWidthMode !== 'custom' },
-      [popoverWidthStepper.el, h('span', { className: 'settings-number-unit', text: 'px' })]
-    );
-
-    const popoverWidthModeToggle = SegmentedControl({
-      ariaLabel: t('settings.str.popoverWidthLabel'),
-      modelValue: draftPopoverWidthMode,
-      options: getPopoverWidthModeOptions(),
-      onUpdateModelValue: (val) => {
-        draftPopoverWidthMode = normalizeClientPopoverWidthMode(val);
-        syncMountSectionMeta();
-        props.onLayoutChange?.();
-        void persistStructurePatch(mountSection, {
-          popoverWidthMode: draftPopoverWidthMode,
-          popoverWidth: draftPopoverWidth,
-        });
-      },
-    });
-
-    const multiSessionToggle = SegmentedControl({
-      ariaLabel: t('settings.str.multiToggle'),
-      modelValue: 'show',
-      options: getMultiToggleOptions(),
-      onUpdateModelValue: (val) => {
-        draftShowTopbarMulti = val !== 'hide';
-        syncMountSectionMeta();
-        void persistStructurePatch(mountSection, {
-          showTopbarMultiSession: draftShowTopbarMulti,
-        });
-      },
     });
 
     const cliCapsuleToggle = SegmentedControl({
@@ -344,24 +221,14 @@ export const SettingsStructureTab = defineComponent({
       title: t('settings.str.mountSection'),
       badgeText: t('settings.str.mountBadge', { count: draftTopbarSlots.length }),
       onReset: () => {
-        draftWindowMountMode = 'dual';
-        draftPopoverWidthMode = 'auto';
-        draftPopoverWidth = DEFAULT_CLIENT_POPOVER_WIDTH;
-        popoverWidthStepper.setProps({ modelValue: DEFAULT_CLIENT_POPOVER_WIDTH });
         draftEnableCliStatusLine = true;
-        draftShowTopbarMulti = true;
         draftTopbarSlots = [...DEFAULT_CLIENT_TOPBAR_SLOTS];
         syncMountSectionMeta();
         props.onLayoutChange?.();
         void persistStructurePatch(
           mountSection,
           {
-            windowMountMode: 'dual',
-            enableWindowOverlay: true,
-            popoverWidthMode: 'auto',
-            popoverWidth: DEFAULT_CLIENT_POPOVER_WIDTH,
             enableCliStatusLine: true,
-            showTopbarMultiSession: true,
             topbarCapsuleSlots: [...DEFAULT_CLIENT_TOPBAR_SLOTS],
           },
           'settings.resetDone'
@@ -370,21 +237,6 @@ export const SettingsStructureTab = defineComponent({
       children: [
         mountPreviewCanvas,
         h('div', { className: 'settings-divider' }),
-        h('div', { className: 'form-row' }, [mountModeLabelEl, windowMountSelect.el]),
-        h('div', { className: 'form-row' }, [
-          h('div', { className: 'settings-inline-row' }, [
-            popoverWidthLabelEl,
-            h('div', { className: 'settings-inline-controls' }, [
-              popoverWidthModeToggle.el,
-              popoverWidthNumWrap,
-            ]),
-          ]),
-          popoverWidthHintEl,
-        ]),
-        h('div', { className: 'settings-inline-row' }, [
-          multiToggleLabelEl,
-          multiSessionToggle.el,
-        ]),
         h('div', { className: 'settings-inline-row' }, [
           cliCapsuleLabelEl,
           cliCapsuleToggle.el,
@@ -399,25 +251,6 @@ export const SettingsStructureTab = defineComponent({
     }
 
     function syncMountSectionMeta() {
-      windowMountSelect.setProps({
-        modelValue: draftWindowMountMode,
-        options: getMountModeOptions(),
-      });
-      popoverWidthModeToggle.setProps({
-        modelValue: draftPopoverWidthMode,
-        options: getPopoverWidthModeOptions(),
-      });
-      patchAttr(popoverWidthNumWrap, 'hidden', draftPopoverWidthMode !== 'custom');
-      if (!isElementFocused(popoverWidthStepper.refs.textField)) {
-        popoverWidthStepper.setProps({
-          modelValue: draftPopoverWidth,
-          ariaLabel: t('settings.str.popoverWidthLabel'),
-        });
-      }
-      multiSessionToggle.setProps({
-        modelValue: draftShowTopbarMulti ? 'show' : 'hide',
-        options: getMultiToggleOptions(),
-      });
       cliCapsuleToggle.setProps({
         modelValue: draftEnableCliStatusLine ? 'on' : 'off',
         options: getEnableToggleOptions(),
@@ -431,117 +264,13 @@ export const SettingsStructureTab = defineComponent({
         t('settings.str.mountBadge', { count: draftTopbarSlots.length })
       );
       const isDefault =
-        draftWindowMountMode === 'dual' &&
-        draftPopoverWidthMode === 'auto' &&
-        draftPopoverWidth === DEFAULT_CLIENT_POPOVER_WIDTH &&
         draftEnableCliStatusLine === true &&
-        draftShowTopbarMulti === true &&
         isSameList(draftTopbarSlots, DEFAULT_CLIENT_TOPBAR_SLOTS);
       mountSection.refs.setResetDisabled(isDefault);
       refreshMountPreview();
     }
 
-    // --- Pane 2: 鼠标悬浮窗 (`hover`) ---
-    const hoverWidgetsContainerEl = h('div', { className: 'wm-hover-widgets' });
-    const hoverPreviewTipEl = h('div', { className: 'wm-hover-tip is-preview' }, [
-      hoverWidgetsContainerEl,
-    ]);
-    const hoverPreviewEmptyEl = h('div', {
-      className: 'structure-preview-empty',
-      hidden: true,
-      text: t('settings.str.hoverEmptyHint'),
-    });
-    const hoverPreviewHost = createDynamicWidgetHost({
-      containerEl: hoverWidgetsContainerEl,
-      mode: 'hover',
-      preview: true,
-      isVisibleFn: () => isStructureVisible() && activeThirdTab === 'hover',
-      initialModuleKeys: [],
-    });
-    const hoverPreviewCanvas = h('div', { className: 'structure-preview-canvas' }, [
-      hoverPreviewTipEl,
-      hoverPreviewEmptyEl,
-    ]);
-
-    const hoverModulesLabelEl = h('span', {
-      className: 'form-label',
-      text: t('settings.str.hoverModulesLabel'),
-    });
-
-    const hoverModulesList = EditableSlotList({
-      items: draftHoverModules,
-      options: getOverviewModuleOptions(),
-      minItems: 0,
-      maxItems: 4,
-      emptyHintText: t('settings.str.hoverEmptyHint'),
-      addBtnTextFn: (count, max) => t('settings.str.addHoverModule', { count, max }),
-      onPreview: (previewItems) => {
-        draftHoverModules = normalizeClientHoverModules(previewItems);
-        refreshHoverPreview();
-      },
-      onChange: (nextItems) => {
-        draftHoverModules = normalizeClientHoverModules(nextItems);
-        syncHoverSectionMeta();
-        props.onLayoutChange?.();
-        void persistStructurePatch(hoverSection, {
-          hoverModules: draftHoverModules,
-        });
-      },
-    });
-
-    const hoverSection = CollapsibleSection({
-      collapsible: false,
-      icon: 'layers',
-      title: t('settings.str.hoverSection'),
-      badgeText: t('settings.str.hoverBadgeCount', { count: draftHoverModules.length }),
-      onReset: () => {
-        draftHoverModules = [...DEFAULT_CLIENT_HOVER_MODULES];
-        syncHoverSectionMeta();
-        props.onLayoutChange?.();
-        void persistStructurePatch(
-          hoverSection,
-          { hoverModules: [...DEFAULT_CLIENT_HOVER_MODULES] },
-          'settings.resetDone'
-        );
-      },
-      children: [
-        hoverPreviewCanvas,
-        h('div', { className: 'settings-divider' }),
-        h('div', { className: 'form-row' }, [hoverModulesLabelEl, hoverModulesList.el]),
-      ],
-    });
-
-    function refreshHoverPreview() {
-      if (!isStructureVisible() || activeThirdTab !== 'hover') return;
-      const hasModules = draftHoverModules.length > 0;
-      patchAttr(hoverPreviewTipEl, 'hidden', !hasModules);
-      patchAttr(hoverPreviewEmptyEl, 'hidden', hasModules);
-      patchText(hoverPreviewEmptyEl, t('settings.str.hoverEmptyHint'));
-      hoverPreviewHost.update({
-        moduleKeys: draftHoverModules,
-        data: buildDraftTelemetry(),
-      });
-    }
-
-    function syncHoverSectionMeta() {
-      hoverModulesList.refs.setProps({
-        items: draftHoverModules,
-        options: getOverviewModuleOptions(),
-        emptyHintText: t('settings.str.hoverEmptyHint'),
-        addBtnTextFn: (count, max) => t('settings.str.addHoverModule', { count, max }),
-      });
-      hoverSection.refs.setBadge(
-        draftHoverModules.length === 0
-          ? t('settings.str.hoverBadgeOff')
-          : t('settings.str.hoverBadgeCount', { count: draftHoverModules.length })
-      );
-      hoverSection.refs.setResetDisabled(
-        isSameList(draftHoverModules, DEFAULT_CLIENT_HOVER_MODULES)
-      );
-      refreshHoverPreview();
-    }
-
-    // --- Pane 3: 实时监控布局 (`overview`) ---
+    // --- Pane 2: 实时监控布局 (`overview`) ---
     const overviewPreviewContainerEl = h('div', { className: 'overview-modules-host is-preview' });
     const overviewPreviewHost = createDynamicWidgetHost({
       containerEl: overviewPreviewContainerEl,
@@ -945,11 +674,6 @@ export const SettingsStructureTab = defineComponent({
 
     function syncPreviewTickers() {
       const visible = isStructureVisible();
-      if (visible && activeThirdTab === 'hover') {
-        hoverPreviewHost.resumeTickers();
-      } else {
-        hoverPreviewHost.pauseTickers();
-      }
       if (visible && activeThirdTab === 'overview') {
         overviewPreviewHost.resumeTickers();
       } else {
@@ -963,7 +687,6 @@ export const SettingsStructureTab = defineComponent({
     function refreshActivePreview() {
       if (!isStructureVisible()) return;
       if (activeThirdTab === 'mount') refreshMountPreview();
-      else if (activeThirdTab === 'hover') refreshHoverPreview();
       else if (activeThirdTab === 'overview') refreshOverviewPreview();
       else if (activeThirdTab === 'steps') refreshStepsPreview();
     }
@@ -977,7 +700,6 @@ export const SettingsStructureTab = defineComponent({
         patchAttr(entry.btn, 'aria-selected', isActive ? 'true' : 'false');
       }
       patchAttr(mountSection.el, 'hidden', nextTab !== 'mount');
-      patchAttr(hoverSection.el, 'hidden', nextTab !== 'hover');
       patchAttr(overviewSection.el, 'hidden', nextTab !== 'overview');
       patchAttr(stepsSection.el, 'hidden', nextTab !== 'steps');
       refreshActivePreview();
@@ -987,30 +709,15 @@ export const SettingsStructureTab = defineComponent({
 
     const rootEl = h('div', { className: 'settings-tab-stack' }, [
       mountSection.el,
-      hoverSection.el,
       overviewSection.el,
       stepsSection.el,
     ]);
 
-    function renderSettings(
-      settings,
-      windowBridge = latestWindowBridge,
-      hostPlatform = latestHostPlatform
-    ) {
+    function renderSettings(settings) {
       if (!settings) return;
       latestSettings = settings;
-      if (windowBridge !== undefined) latestWindowBridge = windowBridge;
-      if (hostPlatform) latestHostPlatform = hostPlatform;
-      draftWindowMountMode = normalizeClientWindowMountMode(
-        settings.windowMountMode,
-        settings.enableWindowOverlay
-      );
-      draftPopoverWidthMode = normalizeClientPopoverWidthMode(settings.popoverWidthMode);
-      draftPopoverWidth = normalizeClientPopoverWidth(settings.popoverWidth);
       draftEnableCliStatusLine = settings.enableCliStatusLine !== false;
-      draftShowTopbarMulti = settings.showTopbarMultiSession !== false;
       draftTopbarSlots = normalizeClientTopbarSlots(settings.topbarCapsuleSlots);
-      draftHoverModules = normalizeClientHoverModules(settings.hoverModules);
       draftOverviewModules = normalizeClientOverviewModules(settings.overviewModules);
       draftOverviewMetrics = normalizeClientOverviewMetrics(settings.overviewMetrics);
       draftShowStepTurnRail = settings.showStepTurnRail === true;
@@ -1023,7 +730,6 @@ export const SettingsStructureTab = defineComponent({
       draftStepColumns = normalizeClientStepColumns(settings.stepTableColumns);
 
       syncMountSectionMeta();
-      syncHoverSectionMeta();
       syncOverviewSectionMeta();
       syncStepsSectionMeta();
     }
@@ -1036,17 +742,8 @@ export const SettingsStructureTab = defineComponent({
 
       mountSection.refs.setTitle(t('settings.str.mountSection'));
       mountSection.refs.setResetLabel(t('settings.resetBtn'));
-      patchText(mountModeLabelEl, t('settings.str.mountMode'));
-      patchText(popoverWidthLabelEl, t('settings.str.popoverWidthLabel'));
-      patchText(popoverWidthHintEl, t('settings.str.popoverWidthHint'));
-      popoverWidthStepper.setProps({ ariaLabel: t('settings.str.popoverWidthLabel') });
-      patchText(multiToggleLabelEl, t('settings.str.multiToggle'));
       patchText(cliCapsuleLabelEl, t('settings.str.cliCapsuleToggle'));
       patchText(capsuleSlotsLabelEl, t('settings.str.capsuleSlotsLabel'));
-
-      hoverSection.refs.setTitle(t('settings.str.hoverSection'));
-      hoverSection.refs.setResetLabel(t('settings.resetBtn'));
-      patchText(hoverModulesLabelEl, t('settings.str.hoverModulesLabel'));
 
       overviewSection.refs.setTitle(t('settings.str.overviewSection'));
       overviewSection.refs.setResetLabel(t('settings.resetBtn'));
@@ -1066,7 +763,6 @@ export const SettingsStructureTab = defineComponent({
       patchText(stepColsLabelEl, t('settings.str.stepsColsLabel'));
 
       syncMountSectionMeta();
-      syncHoverSectionMeta();
       syncOverviewSectionMeta();
       syncStepsSectionMeta();
     }
@@ -1095,7 +791,6 @@ export const SettingsStructureTab = defineComponent({
     );
 
     syncMountSectionMeta();
-    syncHoverSectionMeta();
     syncOverviewSectionMeta();
     syncStepsSectionMeta();
     applyActiveThirdTab(activeThirdTab);
@@ -1103,16 +798,10 @@ export const SettingsStructureTab = defineComponent({
     onCleanup(() => {
       unsubUi();
       capsulePreviewWidget.destroy();
-      hoverPreviewHost.destroy();
       overviewPreviewHost.destroy();
       stepTablePreview.destroy();
-      windowMountSelect.destroy();
-      popoverWidthStepper.destroy();
-      popoverWidthModeToggle.destroy();
-      multiSessionToggle.destroy();
       cliCapsuleToggle.destroy();
       topbarSlotsList.destroy();
-      hoverModulesList.destroy();
       overviewModulesList.destroy();
       overviewMetricsList.destroy();
       stepTurnRailToggle.destroy();
@@ -1120,7 +809,6 @@ export const SettingsStructureTab = defineComponent({
       stepSpeedColorToggle.destroy();
       stepColumnsList.destroy();
       mountSection.destroy();
-      hoverSection.destroy();
       overviewSection.destroy();
       stepsSection.destroy();
     });
@@ -1130,14 +818,10 @@ export const SettingsStructureTab = defineComponent({
       refs: {
         thirdNavBar,
         capsulePreviewWidget,
-        hoverPreviewHost,
         overviewPreviewHost,
         stepTablePreview,
-        windowMountSelect,
-        multiSessionToggle,
         cliCapsuleToggle,
         topbarSlotsList,
-        hoverModulesList,
         overviewModulesList,
         overviewMetricsList,
         stepTurnRailToggle,
@@ -1145,7 +829,6 @@ export const SettingsStructureTab = defineComponent({
         stepSpeedColorToggle,
         stepColumnsList,
         mountSection,
-        hoverSection,
         overviewSection,
         stepsSection,
         renderSettings,

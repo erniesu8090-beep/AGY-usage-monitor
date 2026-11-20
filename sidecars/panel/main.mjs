@@ -11,7 +11,7 @@
 
 import { Worker } from 'node:worker_threads';
 import { Response, SidecarApp } from 'sidecar_sdk';
-import { BRIDGE_API_ROUTE_DEFS } from './shared/window-bridge-protocol.mjs';
+import { PANEL_API_ROUTE_DEFS } from './shared/api-routes.mjs';
 import { isLocalHostRequest, readLocalAsync } from './backend/http-helpers.mjs';
 
 const app = new SidecarApp();
@@ -215,10 +215,10 @@ app.page(
 );
 
 // ---------------------------------------------------------------------------
-// 业务数据与控制 API 路由（统一源自 shared/window-bridge-protocol.mjs）
+// 业务数据与控制 API 路由（统一源自 shared/api-routes.mjs）
 // ---------------------------------------------------------------------------
 
-for (const route of BRIDGE_API_ROUTE_DEFS) {
+for (const route of PANEL_API_ROUTE_DEFS) {
   app.api(
     route.path,
     (data, req) =>

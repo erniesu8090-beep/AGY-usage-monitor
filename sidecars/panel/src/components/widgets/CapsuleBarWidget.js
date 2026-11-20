@@ -11,10 +11,8 @@ import { createSvgIcon, SVG_NS } from '../../icons/SvgIcon.js';
 import { resolveCapsuleMetricPresentation } from '../../registries/metricRegistry.js';
 import {
   normalizeClientTopbarSlots,
-  normalizeClientWindowMountMode,
   resolveScopedConversation,
 } from '../../store/telemetryStore.js';
-import { buildFallbackRunningConversations } from './LiveActivityWidget.js';
 
 export const RING_RADIUS = 5.2;
 export const RING_CIRCUMFERENCE = +(2 * Math.PI * RING_RADIUS).toFixed(2);
@@ -74,34 +72,6 @@ export function buildCapsuleSlotContext(
     sessionTokens,
     quotas: data.quotas,
   };
-}
-
-/**
- * Compute multi-session button state & normalized running conversation list.
- */
-export function resolveMultiSessionCapsuleState(
-  data,
-  { agents = [], aggregated = null, latestTokPerSec = undefined, contextUsedPct = undefined } = {}
-) {
-  const rawRunningList = buildFallbackRunningConversations(data, {
-    agents,
-    aggregated,
-    latestTokPerSec,
-    contextUsedPct,
-  });
-  const runningCount = rawRunningList.length;
-  const runningSubCount = rawRunningList.reduce(
-    (acc, item) => acc + Number(item.runningSubagentCount || 0),
-    0
-  );
-  const hasWaiting = rawRunningList.some((item) => item.mainActivity?.phase === 'waiting');
-  const multiBtnText =
-    runningCount > 0
-      ? runningSubCount > 0
-        ? t('capsule.multiRunningWithSubs', { count: runningCount, subs: runningSubCount })
-        : t('capsule.multiRunning', { count: runningCount })
-      : t('capsule.multiZero');
-  return { rawRunningList, runningCount, runningSubCount, hasWaiting, multiBtnText };
 }
 
 /**
@@ -227,28 +197,11 @@ export function syncCapsuleSlotNodes(capsuleSlots, capsuleSeps, slotKeys, slotCt
 }
 
 /**
- * Standalone Capsule Bar Preview Widget mounting the real `.wm-multi-btn` and `.wm-capsule-btn`
- * inside a contextual host bar (`dual` titlebar, `composer` toolbar, or `sidebar` disabled state).
+ * Standalone Capsule Bar Preview Widget mounting `.wm-capsule-btn` inside the preview bar.
  */
 export const CapsuleBarWidget = defineComponent({
   name: 'CapsuleBarWidget',
   setup() {
-    const multiDot = h('span', { className: 'wm-multi-dot' });
-    const multiLabel = h('span', {
-      className: 'wm-multi-label',
-      text: t('capsule.multiZero'),
-    });
-    const multiBtn = h(
-      'button',
-      {
-        type: 'button',
-        className: 'wm-multi-btn',
-        tabindex: '-1',
-        'aria-hidden': 'true',
-      },
-      [multiDot, multiLabel]
-    );
-
     const capsuleSlots = [
       createCapsuleSlotNode(0, 'tps'),
       createCapsuleSlotNode(1, 'ttft'),
@@ -284,99 +237,36 @@ export const CapsuleBarWidget = defineComponent({
       ]
     );
 
-    const capsuleCluster = h('div', { className: 'preview-capsule-cluster' }, [
-      multiBtn,
-      capsuleBtn,
-    ]);
+    const capsuleCluster = h('div', { className: 'preview-capsule-cluster' }, [capsuleBtn]);
 
-    // Contextual host chrome affordances for Titlebar vs Composer vs Sidebar-only
     const titlebarLeftMock = h('div', { className: 'preview-host-left is-titlebar' }, [
       h('span', { className: 'preview-win-title', text: 'Antigravity' }),
     ]);
-    const composerLeftMock = h(
-      'div',
-      { className: 'preview-host-left is-composer', hidden: true },
-      [
-        h('span', { className: 'preview-composer-chip' }, [
-          h('span', { text: 'Auto' }),
-          createSvgIcon('chevron-down', { size: 10 }),
-        ]),
-        h('span', { className: 'preview-composer-chip' }, [
-          h('span', { text: 'Carbon (High)' }),
-          createSvgIcon('chevron-down', { size: 10 }),
-        ]),
-      ]
-    );
-
-    const composerSendMock = h(
-      'span',
-      { className: 'preview-composer-send', 'aria-hidden': 'true', hidden: true },
-      [createSvgIcon('arrow-up', { size: 11 })]
-    );
 
     const hostBarEl = h(
       'div',
-      { className: 'preview-capsule-bar', 'data-mount-mode': 'dual' },
-      [titlebarLeftMock, composerLeftMock, capsuleCluster, composerSendMock]
+      { className: 'preview-capsule-bar' },
+      [titlebarLeftMock, capsuleCluster]
     );
 
-    const sidebarHintEl = h('div', {
-      className: 'preview-sidebar-note',
-      hidden: true,
-      text: t('settings.str.previewMountSidebarHint'),
-    });
-
-    const rootEl = h('div', { className: 'capsule-preview-widget' }, [hostBarEl, sidebarHintEl]);
+    const rootEl = h('div', { className: 'capsule-preview-widget' }, [hostBarEl]);
 
     function update({ data } = {}) {
       const settings = data?.settings || {};
-      const mountMode = normalizeClientWindowMountMode(
-        settings.windowMountMode,
-        settings.enableWindowOverlay
-      );
-      const showMulti = settings.showTopbarMultiSession !== false;
       const slotKeys = normalizeClientTopbarSlots(settings.topbarCapsuleSlots);
 
-      const isComposer = mountMode === 'composer';
-      const isSidebar = mountMode === 'sidebar';
-      patchAttr(hostBarEl, 'data-mount-mode', mountMode);
-      patchClasses(hostBarEl, {
-        'is-composer': isComposer,
-        'is-sidebar-only': isSidebar,
-      });
-
-      patchAttr(titlebarLeftMock, 'hidden', isComposer);
-      patchAttr(composerLeftMock, 'hidden', !isComposer);
-      patchAttr(composerSendMock, 'hidden', !isComposer);
-      patchAttr(sidebarHintEl, 'hidden', !isSidebar);
-      patchText(sidebarHintEl, t('settings.str.previewMountSidebarHint'));
-
-      patchAttr(multiBtn, 'hidden', !showMulti);
-
       if (!data) {
-        patchClasses(multiBtn, { 'is-running': false, 'is-waiting': false });
-        patchText(multiLabel, t('capsule.multiZero'));
+        patchClasses(capsuleBtn, { 'is-running': false });
         syncCapsuleSlotNodes(capsuleSlots, capsuleSeps, slotKeys, { hasTelemetry: false });
         return;
       }
 
-      const { agents, scopedConv, ctxAgent, aggregated } = resolveScopedConversation(
+      const { scopedConv, ctxAgent, aggregated } = resolveScopedConversation(
         data,
         'all',
         'auto'
       );
       const slotCtx = buildCapsuleSlotContext(data, { scopedConv, ctxAgent, aggregated });
-      const { runningCount, hasWaiting, multiBtnText } = resolveMultiSessionCapsuleState(data, {
-        agents,
-        aggregated,
-        contextUsedPct: slotCtx.usedPct,
-      });
-
-      patchClasses(multiBtn, {
-        'is-running': runningCount > 0 && !hasWaiting,
-        'is-waiting': runningCount > 0 && hasWaiting,
-      });
-      patchText(multiLabel, multiBtnText);
 
       patchClasses(capsuleBtn, { 'is-running': slotCtx.isRunning });
       syncCapsuleSlotNodes(capsuleSlots, capsuleSeps, slotKeys, slotCtx);
@@ -386,7 +276,6 @@ export const CapsuleBarWidget = defineComponent({
       el: rootEl,
       refs: {
         update,
-        multiBtn,
         capsuleBtn,
         capsuleSlots,
         capsuleSeps,

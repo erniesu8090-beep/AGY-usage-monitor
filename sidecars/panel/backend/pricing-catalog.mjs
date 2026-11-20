@@ -354,7 +354,7 @@ export function sanitizeCatalogPayload(raw) {
         : null,
     updatedAt:
       typeof raw.updatedAt === 'string' && raw.updatedAt.trim() ? raw.updatedAt.trim() : null,
-    latestPluginVersion,
+    latestPluginVersion: isLegacySource ? null : latestPluginVersion,
     releaseUrl: explicitReleaseUrl || DEFAULT_RELEASE_URL,
     downloadUrl: explicitDownloadUrl || DEFAULT_DOWNLOAD_URL,
     archiveFallbackUrl: explicitArchiveUrl || DEFAULT_ARCHIVE_FALLBACK_URL,

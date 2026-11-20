@@ -208,9 +208,10 @@ export function setLsRuntimeEndpoint(nextAddr, nextCsrfToken, { isDynamic = true
 /**
  * GitHub 官方云端价格目录与插件发布包地址配置。
  */
-export const OFFICIAL_GITHUB_REPO = 'yuhuan-dev/antigravity-usage-monitor';
+export const OFFICIAL_GITHUB_REPO = 'erniesu8090-beep/AGY-usage-monitor';
 export const LEGACY_GITHUB_REPOS = Object.freeze([
   'yuhuan2498281558/antigravity-usage-monitor',
+  'yuhuan-dev/antigravity-usage-monitor',
 ]);
 export const CLOUD_CATALOG_URLS = [
   `https://raw.githubusercontent.com/${OFFICIAL_GITHUB_REPO}/main/pricing-catalog.json`,

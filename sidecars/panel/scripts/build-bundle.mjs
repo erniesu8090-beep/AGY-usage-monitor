@@ -517,7 +517,7 @@ export function buildBundle(panelDir = PANEL_DIR) {
   const jsOrder = [
     'shared/settings-normalization.mjs',
     'shared/telemetry-display-rules.mjs',
-    'shared/window-bridge-protocol.mjs',
+    'shared/api-routes.mjs',
     'src/icons/svgRegistry.js',
     'src/icons/SvgIcon.js',
     'src/core/reactive.js',
@@ -533,7 +533,6 @@ export function buildBundle(panelDir = PANEL_DIR) {
     'src/store/telemetryStore.js',
     'src/components/ui/TopLongPillNav.js',
     'src/components/ui/CustomSelect.js',
-    'src/components/ui/CustomNumberInput.js',
     'src/components/ui/CustomDateTimePicker.js',
     'src/components/ui/CustomScrollbar.js',
     'src/components/ui/SegmentedControl.js',

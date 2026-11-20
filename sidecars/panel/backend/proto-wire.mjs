@@ -75,7 +75,7 @@ export function toUint8Array(raw) {
   return null;
 }
 
-export function decodeUtf8Slice(buf, start, end) {
+function decodeUtf8Slice(buf, start, end) {
   if (start >= end) return '';
   if (protoUtf8Decoder) {
     return protoUtf8Decoder.decode(buf.subarray(start, end));
