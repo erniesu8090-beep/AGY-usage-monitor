@@ -168,9 +168,10 @@ namespace AntigravityTaskbarMonitor
 
             Size = new Size(width, height);
 
-            Rectangle workArea = Screen.PrimaryScreen != null
-                ? Screen.PrimaryScreen.WorkingArea
-                : new Rectangle(0, 0, 1920, 1040);
+            Screen screen = Screen.FromPoint(new Point(anchorCenterX, taskbarTopY));
+            Rectangle workArea = screen != null
+                ? screen.WorkingArea
+                : (Screen.PrimaryScreen != null ? Screen.PrimaryScreen.WorkingArea : new Rectangle(0, 0, 1920, 1040));
 
             int x = anchorCenterX - width / 2;
             int margin = (int)Math.Round(8 * _dpiScale);
@@ -959,8 +960,8 @@ namespace AntigravityTaskbarMonitor
             AddThemeMenuItem(themeMenu, "Antigravity 天空藍", "blue");
             _menu.Items.Add(themeMenu);
 
-            var layoutMenu = new ToolStripMenuItem("工作列顯示模式 (防遮擋)");
-            AddBarModeMenuItem(layoutMenu, "自動避讓 (空間夠用進度條，不足切精簡文字)", "auto");
+            var layoutMenu = new ToolStripMenuItem("工作列顯示模式");
+            AddBarModeMenuItem(layoutMenu, "預設 (顯示雙排進度條)", "auto");
             AddBarModeMenuItem(layoutMenu, "一律顯示雙排進度條", "full");
             AddBarModeMenuItem(layoutMenu, "一律顯示超精簡純文字", "mini");
             AddBarModeMenuItem(layoutMenu, "僅顯示系統匣數字圖示", "trayonly");
@@ -1070,7 +1071,7 @@ namespace AntigravityTaskbarMonitor
         {
             _settings.DisplayMode = mode;
             QuotaDataStore.SaveSettings(_settings);
-            RenderAndSync(true);
+            RefreshDataAndSync(true);
         }
 
         private void AdjustOffsetX(int delta)

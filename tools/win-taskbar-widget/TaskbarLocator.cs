@@ -2,9 +2,6 @@ using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
-using System.Windows;
-using System.Windows.Automation;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
@@ -26,127 +23,10 @@ namespace AntigravityTaskbarMonitor
         public int FreeSpacePx;
     }
 
-    internal static class TaskbarShortcutScanner
-    {
-        private static readonly object SyncLock = new object();
-        private static int _cachedRightmostX;
-        private static bool _hasCachedValue;
-        private static IntPtr _targetShell;
-        private static int _targetShellLeft;
-        private static int _targetShellWidth;
-        private static int _targetAnchorRight;
-        private static bool _workerStarted;
-
-        public static void EnsureStarted(IntPtr hShell, int shellLeft, int shellWidth, int anchorRight)
-        {
-            lock (SyncLock)
-            {
-                _targetShell = hShell;
-                _targetShellLeft = shellLeft;
-                _targetShellWidth = shellWidth;
-                _targetAnchorRight = anchorRight;
-                if (_workerStarted) return;
-                _workerStarted = true;
-            }
-
-            var thread = new Thread(ScanLoop);
-            thread.IsBackground = true;
-            thread.Name = "TaskbarShortcutScanner";
-            thread.Start();
-        }
-
-        public static bool TryGetRightmostButtonX(out int rightmostX)
-        {
-            lock (SyncLock)
-            {
-                rightmostX = _cachedRightmostX;
-                return _hasCachedValue;
-            }
-        }
-
-        private static void ScanLoop()
-        {
-            while (true)
-            {
-                try
-                {
-                    IntPtr hShell;
-                    int shellLeft;
-                    int shellWidth;
-                    int anchorRight;
-                    lock (SyncLock)
-                    {
-                        hShell = _targetShell;
-                        shellLeft = _targetShellLeft;
-                        shellWidth = _targetShellWidth;
-                        anchorRight = _targetAnchorRight;
-                    }
-
-                    if (hShell != IntPtr.Zero && shellWidth > 0 && anchorRight > shellLeft)
-                    {
-                        int foundMaxRight;
-                        if (ScanRightmostButton(hShell, shellLeft, shellWidth, anchorRight, out foundMaxRight))
-                        {
-                            lock (SyncLock)
-                            {
-                                _cachedRightmostX = foundMaxRight;
-                                _hasCachedValue = true;
-                            }
-                        }
-                    }
-                }
-                catch
-                {
-                    // Ignore transient UIAutomation COM errors when Explorer refreshes
-                }
-                Thread.Sleep(900);
-            }
-        }
-
-        private static bool ScanRightmostButton(
-            IntPtr hShell,
-            int shellLeft,
-            int shellWidth,
-            int anchorRight,
-            out int maxRightX)
-        {
-            maxRightX = 0;
-            AutomationElement root = AutomationElement.FromHandle(hShell);
-            if (root == null) return false;
-
-            var btnCond = new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button);
-            AutomationElementCollection buttons = root.FindAll(TreeScope.Descendants, btnCond);
-            if (buttons == null || buttons.Count == 0) return false;
-
-            bool anyFound = false;
-            double maxAllowedWidth = shellWidth * 0.4;
-            for (int i = 0; i < buttons.Count; i++)
-            {
-                try
-                {
-                    Rect r = buttons[i].Current.BoundingRectangle;
-                    if (r.IsEmpty || r.Width <= 1 || r.Height <= 4) continue;
-                    if (r.Width > maxAllowedWidth) continue;
-                    if (r.Left < shellLeft - 2) continue;
-                    // Ignore buttons inside TrayNotifyWnd (system tray chevron, clock, etc.)
-                    if (r.Left >= anchorRight - 4 || r.Right > anchorRight + 8) continue;
-
-                    int rightPx = (int)Math.Ceiling(r.Right);
-                    if (!anyFound || rightPx > maxRightX)
-                    {
-                        maxRightX = rightPx;
-                        anyFound = true;
-                    }
-                }
-                catch
-                {
-                    // Element might disappear mid-iteration
-                }
-            }
-            return anyFound;
-        }
-    }
-
+    /// <summary>
+    /// 使用唯讀視窗矩形 API 定位 Windows 工作列與系統匣左緣座標，並透過分層視窗繪製工作列小條。
+    /// 已移除 UIAutomation 跨行程控制項掃描，避免觸發防毒行為監控。
+    /// </summary>
     internal static class TaskbarLocator
     {
         private const int WS_EX_LAYERED = 0x00080000;
@@ -460,15 +340,8 @@ namespace AntigravityTaskbarMonitor
 
             env.AnchorRight = anchorRight;
             env.Gap = (int)Math.Round(2 * env.DpiScale);
-
-            TaskbarShortcutScanner.EnsureStarted(hShell, shellRect.Left, shellW, anchorRight);
-            int rightmostBtnX;
-            if (TaskbarShortcutScanner.TryGetRightmostButtonX(out rightmostBtnX))
-            {
-                int safetyMargin = (int)Math.Round(6 * env.DpiScale);
-                env.HasFreeSpaceInfo = true;
-                env.FreeSpacePx = Math.Max(0, (anchorRight - env.Gap) - rightmostBtnX - safetyMargin);
-            }
+            env.HasFreeSpaceInfo = false;
+            env.FreeSpacePx = 0;
 
             env.Visible = true;
             return env;

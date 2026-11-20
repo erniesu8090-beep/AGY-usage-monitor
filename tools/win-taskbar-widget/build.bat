@@ -9,11 +9,6 @@ if not exist "%CSC%" (
     exit /b 1
 )
 
-set "WPF=%SystemRoot%\Microsoft.NET\Framework64\v4.0.30319\WPF"
-if not exist "%WPF%\UIAutomationClient.dll" (
-    set "WPF=%SystemRoot%\Microsoft.NET\Framework\v4.0.30319\WPF"
-)
-
 "%CSC%" /nologo /target:winexe /platform:anycpu /optimize+ /codepage:65001 /utf8output ^
     /out:"AntigravityTaskbarMonitor.exe" ^
     /reference:System.dll ^
@@ -21,9 +16,6 @@ if not exist "%WPF%\UIAutomationClient.dll" (
     /reference:System.Drawing.dll ^
     /reference:System.Windows.Forms.dll ^
     /reference:System.Web.Extensions.dll ^
-    /reference:"%WPF%\WindowsBase.dll" ^
-    /reference:"%WPF%\UIAutomationClient.dll" ^
-    /reference:"%WPF%\UIAutomationTypes.dll" ^
     "Program.cs" "QuotaData.cs" "TaskbarLocator.cs" "TaskbarBarForm.cs"
 
 if errorlevel 1 (
