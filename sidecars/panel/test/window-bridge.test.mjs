@@ -2269,7 +2269,7 @@ test('Compiled app.js mounts dual Shadow DOM hosts, tracks /c/<uuid> routes, pro
     assert.equal(smodelCards[0].querySelector('.smodel-name').textContent, 'gemini-4-hydrogen');
     assert.equal(smodelCards[0].querySelector('.smodel-calls-pill').textContent, '1次 · 50%');
     assert.match(smodelCards[0].querySelector('.smodel-perf').textContent, /均速 92\.3 tok\/s · 首字 5\.6s · 快取 93\.3%/);
-    assert.match(smodelCards[0].querySelector('.smodel-split').textContent, /入 2\.5k · 緩 34\.6k · 思 420 · 正 265/);
+    assert.match(smodelCards[0].querySelector('.smodel-split').textContent, /入 2\.5k · 快取 34\.6k · 思 420 · 正 265/);
 
     // Simulate live telemetry poll where a subagent spawns on 'Gemini 3 Flash' (changing activeModelLabel)
     // while the user remains inside 总汇总 -> fit model MUST NOT jump!

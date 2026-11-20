@@ -2,7 +2,8 @@
 
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { resolveDesktopHostExecutable } from './desktop-launcher-config.mjs';
 import { buildOfficialQuotaPools } from './quota-pools.mjs';
 
 const OAUTH_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -60,10 +61,17 @@ async function loadNativeOAuthClients() {
   if (!nativeOAuthClients) {
     nativeOAuthClients = (async () => {
       const local = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local');
-      const binaries = [
+      const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+      const host = resolveDesktopHostExecutable();
+      const binaries = Array.from(new Set([
+        process.env.ANTIGRAVITY_AGENTAPI_EXE,
+        host?.found && host.executablePath
+          ? join(dirname(host.executablePath), 'resources', 'bin', 'language_server.exe')
+          : null,
         join(local, 'Programs', 'Antigravity', 'resources', 'bin', 'language_server.exe'),
+        join(programFiles, 'Antigravity', 'resources', 'bin', 'language_server.exe'),
         join(homedir(), '.gemini', 'bin', 'agy.exe'),
-      ];
+      ].filter(Boolean)));
       for (const filename of binaries) {
         const binary = await readFile(filename).catch(() => null);
         const clients = binary ? extractNativeOAuthClients(binary) : [];

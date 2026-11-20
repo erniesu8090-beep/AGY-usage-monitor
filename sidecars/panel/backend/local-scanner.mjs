@@ -26,6 +26,7 @@ import {
   CONVERSATION_DIRS,
   DEEP_STATS_CACHE_CANDIDATES,
   getCachedTrajectory,
+  getTrajectoryCacheGeneration,
   hasPendingTrajectoryCacheSave,
   listCachedTrajectoryEntries,
   externalDeepStatsMemo,
@@ -1195,13 +1196,22 @@ function extractTrajectorySubagentMeta(trajRes, fallback = {}) {
  *   activeCascadeId: string|null
  * }>}
  */
-export async function enumerateAndSyncConversations({
+let syncConversationsQueue = Promise.resolve();
+
+export async function enumerateAndSyncConversations(options = {}) {
+  const run = syncConversationsQueue.then(() => runEnumerateAndSyncConversations(options));
+  syncConversationsQueue = run.catch(() => {});
+  return run;
+}
+
+async function runEnumerateAndSyncConversations({
   summariesObj = {},
   sideQuestionParents = {},
   currentAccountName = '',
   requestedConvId = '',
   forceRefresh = false,
 }) {
+  const startCacheGeneration = getTrajectoryCacheGeneration();
   const nowSweepMs = Date.now();
   if (forceRefresh) {
     failedFetchCooldownMap.clear();
@@ -2249,7 +2259,10 @@ export async function enumerateAndSyncConversations({
   const hasRunningSessions = rawConversations.some(
     (c) => c.status === 'CASCADE_RUN_STATUS_RUNNING'
   );
-  if (cacheDirty || (hasPendingTrajectoryCacheSave() && !hasRunningSessions)) {
+  if (
+    getTrajectoryCacheGeneration() === startCacheGeneration &&
+    (cacheDirty || (hasPendingTrajectoryCacheSave() && !hasRunningSessions))
+  ) {
     persistTrajectoryCacheIfNeeded({ hasRunningSessions });
   }
 

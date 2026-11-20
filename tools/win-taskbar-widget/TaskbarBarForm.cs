@@ -100,10 +100,10 @@ namespace AntigravityTaskbarMonitor
                             double segFill = Math.Max(0.0, Math.Min(1.0, (clamped / 10.0) - i));
                             if (segFill > 0.02)
                             {
-                                Region prevClip = g.Clip;
+                                GraphicsState state = g.Save();
                                 g.SetClip(path, CombineMode.Intersect);
                                 g.FillRectangle(fillBrush, sx, y, segW * (float)segFill, segH);
-                                g.Clip = prevClip;
+                                g.Restore(state);
                             }
                         }
                     }

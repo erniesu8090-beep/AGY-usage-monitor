@@ -317,10 +317,10 @@ function readRawBody(req, maxBytes = MAX_JSON_BODY_BYTES) {
 function isSameOriginPostRequest(req) {
   const secFetchSite = String(req.headers?.['sec-fetch-site'] || '').trim().toLowerCase();
   if (secFetchSite === 'cross-site') return false;
-  const origin = String(req.headers?.origin || '').trim();
-  if (!origin) return true;
   const host = String(req.headers?.host || '').trim().toLowerCase();
   if (!host) return false;
+  const origin = String(req.headers?.origin || '').trim();
+  if (!origin) return true;
   try {
     const parsedOrigin = new URL(origin);
     return parsedOrigin.host.toLowerCase() === host;

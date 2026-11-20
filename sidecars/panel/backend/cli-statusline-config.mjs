@@ -155,10 +155,15 @@ export function buildCliStatusLineCommand(
   if (platform === 'win32') {
     const normExec = String(execPath || 'node').trim().replace(/\\/g, '/');
     const runner = nodeOnPath || /\s/.test(normExec) ? 'node' : normExec;
-    if (!/\s/.test(normScript)) {
+    if (!/[\s&^()!%']/.test(normScript) && /^[\x20-\x7e]+$/.test(normScript)) {
       return `${runner} ${normScript}`;
     }
-    const fileUrl = toPercentEncodedFileUrl(normScript).replace(/'/g, '%27');
+    const fileUrl = toPercentEncodedFileUrl(normScript)
+      .replace(/'/g, '%27')
+      .replace(/\(/g, '%28')
+      .replace(/\)/g, '%29')
+      .replace(/!/g, '%21')
+      .replace(/\*/g, '%2A');
     return `${runner} --input-type=module -e import('${fileUrl}')`;
   }
   if (nodeOnPath) {

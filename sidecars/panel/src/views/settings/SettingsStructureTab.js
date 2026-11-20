@@ -63,6 +63,13 @@ function normalizeStructureTabKey(raw) {
   return k === 'hover' || k === 'overview' || k === 'steps' ? k : 'mount';
 }
 
+function isElementFocused(el) {
+  if (!el) return false;
+  const root = typeof el.getRootNode === 'function' ? el.getRootNode() : null;
+  const active = root && 'activeElement' in root ? root.activeElement : document?.activeElement;
+  return active === el;
+}
+
 function getMountModeOptions() {
   return [
     { value: 'dual', label: t('settings.str.mountDual') },
@@ -410,7 +417,7 @@ export const SettingsStructureTab = defineComponent({
         options: getPopoverWidthModeOptions(),
       });
       patchAttr(popoverWidthNumWrap, 'hidden', draftPopoverWidthMode !== 'custom');
-      if (document?.activeElement !== popoverWidthStepper.refs.textField) {
+      if (!isElementFocused(popoverWidthStepper.refs.textField)) {
         popoverWidthStepper.setProps({
           modelValue: draftPopoverWidth,
           ariaLabel: t('settings.str.popoverWidthLabel'),
@@ -884,7 +891,7 @@ export const SettingsStructureTab = defineComponent({
       const mockData = buildDraftTelemetry();
       const mockSteps = mockData.activeConversation?.recentSteps || [];
       const previewCols =
-        document?.activeElement === stepTokenComboInput &&
+        isElementFocused(stepTokenComboInput) &&
         String(rawStepTokenComboText || '').trim() &&
         !draftStepColumns.includes('tokens_custom')
           ? normalizeClientStepColumns(
@@ -926,7 +933,7 @@ export const SettingsStructureTab = defineComponent({
         modelValue: draftShowStepSpeedColor ? 'on' : 'off',
         options: getEnableToggleOptions(),
       });
-      if (document?.activeElement !== stepTokenComboInput) {
+      if (!isElementFocused(stepTokenComboInput)) {
         stepTokenComboInput.value = rawStepTokenComboText;
       }
       stepColumnsList.refs.setProps({

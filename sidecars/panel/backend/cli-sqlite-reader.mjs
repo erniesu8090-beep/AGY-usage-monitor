@@ -1251,7 +1251,7 @@ function decodeProtoStepMeta(rawBlob, fallbackIdx) {
     ...(createdAt ? { createdAt } : {}),
     ...(viewableAt ? { viewableAt } : {}),
     ...(finishedGeneratingAt ? { finishedGeneratingAt } : {}),
-    ...(completedAt ? { completedAt } : startedAt && !finishedGeneratingAt ? { completedAt: startedAt } : {}),
+    ...(completedAt ? { completedAt } : {}),
     ...(startedAt ? { startedAt } : {}),
     ...(generatorModel ? { generatorModel } : {}),
     ...(toolCall ? { toolCall } : {}),

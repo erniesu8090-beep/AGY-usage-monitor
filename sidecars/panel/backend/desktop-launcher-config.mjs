@@ -408,6 +408,7 @@ function writeTextFileAtomically(filePath, content, fsOps) {
 
 const WIN_SHORTCUT_PROVISION_PS = `
 $ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $enableFlag = $env:AGY_LAUNCH_ENABLED -eq '1'
 $updated = New-Object System.Collections.Generic.List[string]
 $configured = New-Object System.Collections.Generic.List[string]
@@ -720,7 +721,7 @@ async function discoverRunningHostExecutable({ platform = process.platform, exec
   if (platform === 'win32') {
     try {
       const ps =
-        "@(Get-Process -Name 'Antigravity','Antigravity IDE' -ErrorAction SilentlyContinue | Where-Object { $_.Path } | Select-Object -First 1) | ForEach-Object { [pscustomobject]@{ path = [string]$_.Path; name = [string]$_.ProcessName } } | ConvertTo-Json -Compress";
+        "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; @(Get-Process -Name 'Antigravity','Antigravity IDE' -ErrorAction SilentlyContinue | Where-Object { $_.Path } | Select-Object -First 1) | ForEach-Object { [pscustomobject]@{ path = [string]$_.Path; name = [string]$_.ProcessName } } | ConvertTo-Json -Compress";
       const out = await runner(
         'powershell.exe',
         ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', ps],

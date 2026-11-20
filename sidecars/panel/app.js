@@ -1311,7 +1311,7 @@ const I18N_MESSAGES_ZH_CN = Object.freeze({
   'steps.modelCallsOnly': '{calls}次',
   'steps.modelsSummaryPrefix': '{count} 模型 · ',
   'steps.modelPerfFoot': '均速 {tps} · 首字 {ttft} · 快取 {cache}%',
-  'steps.modelSplitFoot': '入 {inTok} · 緩 {cacheTok} · 思 {thinkTok} · 正 {respTok}',
+  'steps.modelSplitFoot': '入 {inTok} · 快取 {cacheTok} · 思 {thinkTok} · 正 {respTok}',
   'steps.fitActiveCardTitle': '{title}（已納入上方趨勢擬合，按住 Ctrl/Shift 點擊可複選對比）',
   'steps.fitInactiveCardTitle': '點擊在上方擬合圖查看 {text}（按住 Ctrl/Shift 點擊可複選同圖對比）',
   'steps.turnMediaOnly': '[圖片/附件提問]',
@@ -1608,7 +1608,7 @@ const I18N_MESSAGES_ZH_CN = Object.freeze({
   'chart.step.excluded': '未納入',
   'chart.step.zeroSteps': '0 步',
   'chart.step.stepAdd': '本步 +{tokens}',
-  'chart.step.ioSplit': '入 {inTok} · 緩 {cacheTok} · 出 {outTok}',
+  'chart.step.ioSplit': '入 {inTok} · 快取 {cacheTok} · 出 {outTok}',
   'chart.step.cacheShort': '快取 {pct}%',
   'chart.step.compactionCheckpoint': '上下文自動壓縮檢查點',
   'chart.step.cacheHitOut': '快取命中 {pct}% · 輸出 +{outTok}',
@@ -14875,6 +14875,13 @@ function normalizeStructureTabKey(raw) {
   return k === 'hover' || k === 'overview' || k === 'steps' ? k : 'mount';
 }
 
+function isElementFocused(el) {
+  if (!el) return false;
+  const root = typeof el.getRootNode === 'function' ? el.getRootNode() : null;
+  const active = root && 'activeElement' in root ? root.activeElement : document?.activeElement;
+  return active === el;
+}
+
 function getMountModeOptions() {
   return [
     { value: 'dual', label: t('settings.str.mountDual') },
@@ -15222,7 +15229,7 @@ const SettingsStructureTab = defineComponent({
         options: getPopoverWidthModeOptions(),
       });
       patchAttr(popoverWidthNumWrap, 'hidden', draftPopoverWidthMode !== 'custom');
-      if (document?.activeElement !== popoverWidthStepper.refs.textField) {
+      if (!isElementFocused(popoverWidthStepper.refs.textField)) {
         popoverWidthStepper.setProps({
           modelValue: draftPopoverWidth,
           ariaLabel: t('settings.str.popoverWidthLabel'),
@@ -15696,7 +15703,7 @@ const SettingsStructureTab = defineComponent({
       const mockData = buildDraftTelemetry();
       const mockSteps = mockData.activeConversation?.recentSteps || [];
       const previewCols =
-        document?.activeElement === stepTokenComboInput &&
+        isElementFocused(stepTokenComboInput) &&
         String(rawStepTokenComboText || '').trim() &&
         !draftStepColumns.includes('tokens_custom')
           ? normalizeClientStepColumns(
@@ -15738,7 +15745,7 @@ const SettingsStructureTab = defineComponent({
         modelValue: draftShowStepSpeedColor ? 'on' : 'off',
         options: getEnableToggleOptions(),
       });
-      if (document?.activeElement !== stepTokenComboInput) {
+      if (!isElementFocused(stepTokenComboInput)) {
         stepTokenComboInput.value = rawStepTokenComboText;
       }
       stepColumnsList.refs.setProps({
@@ -18057,6 +18064,12 @@ const StepsDetailView = defineComponent({
     // --- 子视图 2：总汇总分析面板 ---
     let selectedLineMetric = 'totalTokens';
     let selectedFitMetric = 'tps';
+    let latestFitUiState = {
+      hasMultipleModels: false,
+      isFitPooledAll: false,
+      effectiveFitModelKeys: [],
+      fitActiveKeySet: new Set(),
+    };
 
     let fitLockedCascadeId = null;
     let fitLockedModelKeys = [];
@@ -18640,6 +18653,12 @@ const StepsDetailView = defineComponent({
 
       const isFitPooledAll = effectiveFitModelKeys.includes('__all__');
       const fitActiveKeySet = new Set(isFitPooledAll ? [] : effectiveFitModelKeys);
+      latestFitUiState = {
+        hasMultipleModels,
+        isFitPooledAll,
+        effectiveFitModelKeys: [...effectiveFitModelKeys],
+        fitActiveKeySet,
+      };
 
       patchKeyedList(modelsListEl, displayModels, {
         keyFn: (m) => m.displayText || m.label || m.shortName,
@@ -18778,12 +18797,14 @@ const StepsDetailView = defineComponent({
                 : t('steps.fitInactiveCardTitle', { text: dispText })
           );
           cardEl.onclick = (e) => {
-            if (!hasMultipleModels) return;
-            if (e && (e.ctrlKey || e.metaKey || e.shiftKey) && !isFitPooledAll) {
+            const curState = latestFitUiState;
+            if (!curState.hasMultipleModels) return;
+            if (e && (e.ctrlKey || e.metaKey || e.shiftKey) && !curState.isFitPooledAll) {
               const cardSet = new Set(cardGroupKeys);
-              const next = isActiveFit
-                ? effectiveFitModelKeys.filter((k) => !cardSet.has(k))
-                : Array.from(new Set([...effectiveFitModelKeys, ...cardGroupKeys]));
+              const curActive = cardGroupKeys.some((k) => curState.fitActiveKeySet.has(k));
+              const next = curActive
+                ? curState.effectiveFitModelKeys.filter((k) => !cardSet.has(k))
+                : Array.from(new Set([...curState.effectiveFitModelKeys, ...cardGroupKeys]));
               fitLockedModelKeys = next.length > 0 ? next : [...cardGroupKeys];
               fitUserPicked = true;
               fitPinnedWhileVisible = true;
@@ -18791,9 +18812,9 @@ const StepsDetailView = defineComponent({
               return;
             }
             const isAlreadySole =
-              !isFitPooledAll &&
-              effectiveFitModelKeys.length === cardGroupKeys.length &&
-              cardGroupKeys.every((k) => fitActiveKeySet.has(k));
+              !curState.isFitPooledAll &&
+              curState.effectiveFitModelKeys.length === cardGroupKeys.length &&
+              cardGroupKeys.every((k) => curState.fitActiveKeySet.has(k));
             if (!isAlreadySole || !fitUserPicked) {
               fitLockedModelKeys = [...cardGroupKeys];
               fitUserPicked = true;
@@ -19443,7 +19464,7 @@ const COMPOSER_MODEL_ATTR_RE =
   /\bmodel[-_\s]?(?:select|picker|switch|selector|menu|name)\b|选择模型|選擇模型|切换模型|切換模型/i;
 const COMPOSER_MODE_EXACT_RE = /^(?:auto|自动|自動)$/i;
 const COMPOSER_MODE_TEXT_RE =
-  /^(?:auto|ask|manual|supervised|autonomous|always\s*allow|turbo|safe|yolo|plan|act|review|confirm|normal|fast|自动|自動|询问|詢問|手动|手動|始终允许|始終允許|受控|规划|規劃)(?:\s*(?:mode|模式))?$/i;
+  /^(?:auto|ask|manual|supervised|autonomous|always\s*allow|turbo|safe|yolo|plan|act|review|confirm|normal|fast|自动|自動|询问|詢問|手动|手動|始终允许|始終允許|一律允許|受控|规划|規劃)(?:\s*(?:mode|模式))?$/i;
 const COMPOSER_MODE_ATTR_RE =
   /\b(?:auto(?:nomy|matic)?|execution[-_]?mode|agent[-_]?mode|permission|approval|hitl|policy|mode[-_]?selector|mode[-_]?picker)\b|自动|自動|执行模式|執行模式|权限模式|權限模式|审批|審批/i;
 const COMPOSER_ICON_FONT_CLASS_RE =

@@ -282,6 +282,12 @@ export const StepsDetailView = defineComponent({
     // --- 子视图 2：总汇总分析面板 ---
     let selectedLineMetric = 'totalTokens';
     let selectedFitMetric = 'tps';
+    let latestFitUiState = {
+      hasMultipleModels: false,
+      isFitPooledAll: false,
+      effectiveFitModelKeys: [],
+      fitActiveKeySet: new Set(),
+    };
 
     let fitLockedCascadeId = null;
     let fitLockedModelKeys = [];
@@ -865,6 +871,12 @@ export const StepsDetailView = defineComponent({
 
       const isFitPooledAll = effectiveFitModelKeys.includes('__all__');
       const fitActiveKeySet = new Set(isFitPooledAll ? [] : effectiveFitModelKeys);
+      latestFitUiState = {
+        hasMultipleModels,
+        isFitPooledAll,
+        effectiveFitModelKeys: [...effectiveFitModelKeys],
+        fitActiveKeySet,
+      };
 
       patchKeyedList(modelsListEl, displayModels, {
         keyFn: (m) => m.displayText || m.label || m.shortName,
@@ -1003,12 +1015,14 @@ export const StepsDetailView = defineComponent({
                 : t('steps.fitInactiveCardTitle', { text: dispText })
           );
           cardEl.onclick = (e) => {
-            if (!hasMultipleModels) return;
-            if (e && (e.ctrlKey || e.metaKey || e.shiftKey) && !isFitPooledAll) {
+            const curState = latestFitUiState;
+            if (!curState.hasMultipleModels) return;
+            if (e && (e.ctrlKey || e.metaKey || e.shiftKey) && !curState.isFitPooledAll) {
               const cardSet = new Set(cardGroupKeys);
-              const next = isActiveFit
-                ? effectiveFitModelKeys.filter((k) => !cardSet.has(k))
-                : Array.from(new Set([...effectiveFitModelKeys, ...cardGroupKeys]));
+              const curActive = cardGroupKeys.some((k) => curState.fitActiveKeySet.has(k));
+              const next = curActive
+                ? curState.effectiveFitModelKeys.filter((k) => !cardSet.has(k))
+                : Array.from(new Set([...curState.effectiveFitModelKeys, ...cardGroupKeys]));
               fitLockedModelKeys = next.length > 0 ? next : [...cardGroupKeys];
               fitUserPicked = true;
               fitPinnedWhileVisible = true;
@@ -1016,9 +1030,9 @@ export const StepsDetailView = defineComponent({
               return;
             }
             const isAlreadySole =
-              !isFitPooledAll &&
-              effectiveFitModelKeys.length === cardGroupKeys.length &&
-              cardGroupKeys.every((k) => fitActiveKeySet.has(k));
+              !curState.isFitPooledAll &&
+              curState.effectiveFitModelKeys.length === cardGroupKeys.length &&
+              cardGroupKeys.every((k) => curState.fitActiveKeySet.has(k));
             if (!isAlreadySole || !fitUserPicked) {
               fitLockedModelKeys = [...cardGroupKeys];
               fitUserPicked = true;

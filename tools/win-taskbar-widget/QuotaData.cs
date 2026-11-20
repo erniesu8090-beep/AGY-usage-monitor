@@ -154,7 +154,7 @@ namespace AntigravityTaskbarMonitor
             try
             {
                 if (!File.Exists(path)) return 0;
-                string raw = File.ReadAllText(path, Encoding.UTF8);
+                string raw = ReadAllTextShared(path);
                 var dict = Json.DeserializeObject(raw) as Dictionary<string, object>;
                 if (dict == null) return 0;
                 int? val = ReadNullableInt(dict, fieldName);
@@ -243,15 +243,36 @@ namespace AntigravityTaskbarMonitor
                 payload["hideOnFullscreen"] = settings.HideOnFullscreen;
 
                 string json = Json.Serialize(payload);
-                string tmp = path + ".tmp";
-                File.WriteAllText(tmp, json, new UTF8Encoding(false));
-                if (File.Exists(path))
+                string tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                try
                 {
-                    File.Replace(tmp, path, null);
+                    File.WriteAllText(tmp, json, new UTF8Encoding(false));
+                    if (File.Exists(path))
+                    {
+                        try
+                        {
+                            File.Replace(tmp, path, null);
+                        }
+                        catch
+                        {
+                            File.Copy(tmp, path, true);
+                        }
+                    }
+                    else
+                    {
+                        File.Move(tmp, path);
+                    }
                 }
-                else
+                finally
                 {
-                    File.Move(tmp, path);
+                    try
+                    {
+                        if (File.Exists(tmp)) File.Delete(tmp);
+                    }
+                    catch
+                    {
+                        // Ignore temp cleanup failure.
+                    }
                 }
             }
             catch

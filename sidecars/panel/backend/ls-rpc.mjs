@@ -125,6 +125,8 @@ export async function callLsRpc(method, body = {}, timeoutMs = 5000) {
  * @param {string} [accountName=''] 发起查询时宿主报告的账号，用于隔离配额缓存
  * @returns {Promise<{data: object|null, fetchedAtMs: number, isStale: boolean, refreshFailed: boolean, error: string|null, fromCache: boolean}>}
  */
+const quotaSummaryInFlight = new Map();
+
 export async function getOfficialQuotaSummary(forceRefresh = false, accountName = '') {
   if (quotaSummaryCache.accountName !== accountName) {
     Object.assign(quotaSummaryCache, {
@@ -164,42 +166,62 @@ export async function getOfficialQuotaSummary(forceRefresh = false, accountName 
     };
   }
 
-  quotaSummaryCache.lastAttemptTs = now;
-  try {
-    const res = await callLsRpc('RetrieveUserQuotaSummary', { forceRefresh: true }, 6000);
-    const { userStatus } = await callLsRpc('GetUserStatus', {}, 2000);
-    if ((userStatus?.email || userStatus?.name || '') !== accountName) return {};
-    if (generation !== quotaSummaryCache.accountGeneration) return {};
-    const payload = res?.response !== undefined ? res.response : res;
-    if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
-      const normalized =
-        Array.isArray(payload.groups) || Array.isArray(payload.buckets)
-          ? payload
-          : { ...payload, groups: [] };
-      quotaSummaryCache.ts = now;
-      quotaSummaryCache.data = normalized;
-      quotaSummaryCache.error = null;
-      return {
-        data: normalized,
-        fetchedAtMs: now,
-        isStale: false,
-        refreshFailed: false,
-        error: null,
-        fromCache: false,
-      };
-    }
-    quotaSummaryCache.error = 'Quota summary empty';
-  } catch (err) {
-    if (generation !== quotaSummaryCache.accountGeneration) return {};
-    console.error(`RetrieveUserQuotaSummary failed: ${err.message}`);
-    quotaSummaryCache.error = err.message;
-  }
-  return {
-    data: quotaSummaryCache.data,
-    fetchedAtMs: quotaSummaryCache.ts || 0,
-    isStale: Boolean(quotaSummaryCache.data),
+  const inFlightKey = `${accountName}::${generation}::${forceRefresh ? '1' : '0'}`;
+  const existingInFlight = quotaSummaryInFlight.get(inFlightKey);
+  if (existingInFlight) return existingInFlight;
+
+  const accountChangedResult = {
+    data: null,
+    fetchedAtMs: 0,
+    isStale: false,
     refreshFailed: true,
-    error: quotaSummaryCache.error || 'Quota RPC unavailable',
+    error: 'Account changed',
     fromCache: false,
   };
+
+  quotaSummaryCache.lastAttemptTs = now;
+  const pending = (async () => {
+    try {
+      const res = await callLsRpc('RetrieveUserQuotaSummary', { forceRefresh: true }, 6000);
+      const { userStatus } = await callLsRpc('GetUserStatus', {}, 2000);
+      if ((userStatus?.email || userStatus?.name || '') !== accountName) return accountChangedResult;
+      if (generation !== quotaSummaryCache.accountGeneration) return accountChangedResult;
+      const payload = res?.response !== undefined ? res.response : res;
+      if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+        const normalized =
+          Array.isArray(payload.groups) || Array.isArray(payload.buckets)
+            ? payload
+            : { ...payload, groups: [] };
+        quotaSummaryCache.ts = now;
+        quotaSummaryCache.data = normalized;
+        quotaSummaryCache.error = null;
+        return {
+          data: normalized,
+          fetchedAtMs: now,
+          isStale: false,
+          refreshFailed: false,
+          error: null,
+          fromCache: false,
+        };
+      }
+      quotaSummaryCache.error = 'Quota summary empty';
+    } catch (err) {
+      if (generation !== quotaSummaryCache.accountGeneration) return accountChangedResult;
+      console.error(`RetrieveUserQuotaSummary failed: ${err.message}`);
+      quotaSummaryCache.error = err.message;
+    }
+    return {
+      data: quotaSummaryCache.data,
+      fetchedAtMs: quotaSummaryCache.ts || 0,
+      isStale: Boolean(quotaSummaryCache.data),
+      refreshFailed: true,
+      error: quotaSummaryCache.error || 'Quota RPC unavailable',
+      fromCache: false,
+    };
+  })().finally(() => {
+    quotaSummaryInFlight.delete(inFlightKey);
+  });
+
+  quotaSummaryInFlight.set(inFlightKey, pending);
+  return pending;
 }

@@ -434,13 +434,18 @@ function usageTimestampBoundary(dates, value, inclusive) {
 function sameUsageWindows(previous, current, dates) {
   return previous.length === current.length && current.every((window, index) => {
     const before = previous[index];
-    return before.key === window.key && before.label === window.label &&
+    if (before.key !== window.key || before.label !== window.label) return false;
+    if (window.key === 'custom') {
+      return before.startMs === window.startMs && before.endMs === window.endMs;
+    }
+    return (
       (before.startMs === window.startMs ||
         usageTimestampBoundary(dates, before.startMs, false) ===
           usageTimestampBoundary(dates, window.startMs, false)) &&
       (before.endMs === window.endMs ||
         usageTimestampBoundary(dates, before.endMs, true) ===
-          usageTimestampBoundary(dates, window.endMs, true));
+          usageTimestampBoundary(dates, window.endMs, true))
+    );
   });
 }
 
@@ -601,8 +606,11 @@ export function aggregateMultiWindowUsage({
     if (liveEntry && (liveEntry.steps?.length || 0) >= (ext.steps?.length || 0)) {
       continue;
     }
+    const groupCascadeId = String(
+      liveEntry?.rootConversationId || liveEntry?.parentConversationId || extCidLower
+    ).toLowerCase();
     allEntriesToAggregate.push({
-      cascadeId: extCidLower,
+      cascadeId: groupCascadeId,
       appSource: ext.appSource || 'ide',
       accountName: ext.accountName || liveEntry?.accountName || '',
       steps: ext.steps || [],

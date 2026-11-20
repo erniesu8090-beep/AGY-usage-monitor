@@ -620,7 +620,7 @@ test('Hybrid SQLite+WAL mode skips trajectory RPCs for local DBs, falls back to 
     // Account (session $13.15 + rpcOnlyCid $0.30) = $13.45
     assert.equal(payload.activeConversation.aggregated.sessionCostUsd, 13.15);
     assert.equal(payload.consumption.account.costUsd, 13.45);
-    assert.equal(payload.activeConversation.aggregated.role, '主代理 + 1 子代理 + 1 旁问');
+    assert.equal(payload.activeConversation.aggregated.role, '主代理 + 1 子代理 + 1 旁問');
 
     // F. Verify mainline context watermark protection (backend aggregated + frontend auto-follow)
     // Main agent has 3_000_000 tokens (1M in + 1M cache + 1M out), Side Question has 15_000/1_000_000
@@ -637,7 +637,7 @@ test('Hybrid SQLite+WAL mode skips trajectory RPCs for local DBs, falls back to 
     try {
       i18nStore.setState({ locale: 'zh-CN', hostLocale: 'zh-CN' });
       assert.equal(formatAgentBadgeText(agents[2]), '旁1');
-      assert.equal(formatAgentLabel(agents[2]), '旁路提问 #1 · 为什么用 WAL 模式？');
+      assert.equal(formatAgentLabel(agents[2]), '旁路提問 #1 · 为什么用 WAL 模式？');
 
       i18nStore.setState({ locale: 'en-US', hostLocale: 'en-US' });
       assert.equal(formatAgentBadgeText(agents[1]), 'S1');

@@ -458,7 +458,12 @@ const cacheState = {
   needsSave: initialCacheMigrated,
   lastSavedAtMs: 0,
   flushTimer: null,
+  generation: 0,
 };
+
+export function getTrajectoryCacheGeneration() {
+  return cacheState.generation;
+}
 
 export function hasPendingTrajectoryCacheSave() {
   return cacheState.needsSave;
@@ -609,6 +614,7 @@ export function clearRuntimeCaches() {
   }
   cacheState.needsSave = false;
   cacheState.lastSavedAtMs = 0;
+  cacheState.generation += 1;
   externalDeepStatsMemo.sig = '';
   externalDeepStatsMemo.convos.clear();
   localSummaryMemo.sig = '';

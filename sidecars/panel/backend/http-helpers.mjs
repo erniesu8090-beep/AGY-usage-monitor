@@ -38,7 +38,7 @@ export function isLocalHostRequest(req) {
   if (!req?.headers) return true;
   const host = String(req.headers.host || '').trim().toLowerCase();
   const hostMatch = host.match(/^(127\.0\.0\.1|localhost|\[::1\])(?::(\d+))?$/);
-  if (host && !hostMatch) {
+  if (!hostMatch) {
     return false;
   }
   const origin = String(req.headers.origin || '').trim().toLowerCase();

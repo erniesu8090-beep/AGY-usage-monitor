@@ -1,7 +1,7 @@
 import {
   closeSync, fstatSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writevSync,
 } from 'node:fs';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 let lastWrite = null;
 
@@ -10,7 +10,7 @@ function isSameFile(a, b) {
     a.size === b.size && a.mtimeNs === b.mtimeNs;
 }
 
-function readReusableBytes(filePath, expected) {
+function readReusableBytes(filePath, expected, expectedDigest) {
   let fd;
   try {
     fd = openSync(filePath, 'r');
@@ -18,8 +18,13 @@ function readReusableBytes(filePath, expected) {
     if (!isSameFile(before, expected) || before.ctimeNs !== expected.ctimeNs) return null;
     const bytes = readFileSync(fd);
     const after = fstatSync(fd, { bigint: true });
-    return isSameFile(before, after) && before.ctimeNs === after.ctimeNs &&
-      BigInt(bytes.length) === after.size ? bytes : null;
+    if (!isSameFile(before, after) || before.ctimeNs !== after.ctimeNs || BigInt(bytes.length) !== after.size) {
+      return null;
+    }
+    if (expectedDigest && !createHash('sha256').update(bytes).digest().equals(expectedDigest)) {
+      return null;
+    }
+    return bytes;
   } catch {
     return null;
   } finally {
@@ -30,30 +35,33 @@ function readReusableBytes(filePath, expected) {
 // 只复用上次确认写入的步骤字节。扫描器用新数组替换变更步骤，每次仍重新序列化会话元数据。
 export function writeTrajectoryCacheFile(filePath, data) {
   const previous = lastWrite?.filePath === filePath ? lastWrite : null;
-  const bytes = previous ? readReusableBytes(filePath, previous.file) : null;
+  const bytes = previous ? readReusableBytes(filePath, previous.file, previous.digest) : null;
   const ranges = new WeakMap();
   const parts = [];
+  const hash = createHash('sha256');
   let position = 0;
   function append(part) {
     const buffer = typeof part === 'string' ? Buffer.from(part) : part;
     parts.push(buffer);
+    hash.update(buffer);
     position += buffer.length;
   }
 
   append('{');
   let separator = '';
   for (const [id, entry] of Object.entries(data)) {
-    const { steps, ...metadata } = entry;
+    const { steps, ...metadata } = entry || {};
     const header = JSON.stringify(metadata);
     append(`${separator}${JSON.stringify(id)}:${header.slice(0, -1)}${header === '{}' ? '' : ','}"steps":`);
     const range = bytes && previous.ranges.get(steps);
     const start = position;
-    append(range ? bytes.subarray(range.start, range.end) : JSON.stringify(steps));
+    append(range ? bytes.subarray(range.start, range.end) : JSON.stringify(Array.isArray(steps) ? steps : []));
     ranges.set(steps, { start, end: position });
     append('}');
     separator = ',';
   }
   append('}');
+  const digest = hash.digest();
 
   const temporaryPath = `${filePath}.${randomUUID()}.tmp`;
   try {
@@ -72,7 +80,7 @@ export function writeTrajectoryCacheFile(filePath, data) {
     const written = statSync(temporaryPath, { bigint: true });
     renameSync(temporaryPath, filePath);
     const file = statSync(filePath, { bigint: true });
-    lastWrite = isSameFile(written, file) ? { filePath, file, ranges } : null;
+    lastWrite = isSameFile(written, file) ? { filePath, file, ranges, digest } : null;
   } finally {
     try { unlinkSync(temporaryPath); } catch {}
   }

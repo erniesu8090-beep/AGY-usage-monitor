@@ -2028,7 +2028,7 @@ test('provisions Antigravity CLI statusLine safely and renders live capsule from
     }
   );
   assert.ok(h.cliDisplayWidth(inlineBar80) <= 79, 'Narrow 80-col bar never overflows terminalWidth - 1');
-  assert.ok(inlineBar80.includes('5.6s | 22.0 t/s | 余 54% | ◎ 2%'));
+  assert.ok(inlineBar80.includes('5.6s | 22.0 t/s | 餘 54% | ◎ 2%'));
 
   // End-to-end filesystem + subprocess verification
   const tempRoot = mkdtempSync(fileURLToPath(new URL('./.cli-statusline-', import.meta.url)));
