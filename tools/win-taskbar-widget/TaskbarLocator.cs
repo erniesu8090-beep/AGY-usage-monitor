@@ -378,6 +378,18 @@ namespace AntigravityTaskbarMonitor
             }
         }
 
+        public static bool IsQuietOrFullscreenActive(IntPtr selfHandle, IntPtr popupHandle)
+        {
+            IntPtr hShell = FindWindow("Shell_TrayWnd", null);
+            MONITORINFO monInfo = new MONITORINFO();
+            monInfo.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
+            IntPtr hMon = hShell != IntPtr.Zero
+                ? MonitorFromWindow(hShell, MONITOR_DEFAULTTONEAREST)
+                : IntPtr.Zero;
+            bool hasMon = hMon != IntPtr.Zero && GetMonitorInfo(hMon, ref monInfo);
+            return IsFullscreenActive(hShell, monInfo, hasMon, selfHandle, popupHandle);
+        }
+
         private static bool IsFullscreenActive(
             IntPtr hShell,
             MONITORINFO monInfo,

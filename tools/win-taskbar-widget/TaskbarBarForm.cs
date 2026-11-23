@@ -6,6 +6,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Drawing.Text;
 using System.Globalization;
+using System.Media;
 using System.Windows.Forms;
 
 namespace AntigravityTaskbarMonitor
@@ -360,8 +361,11 @@ namespace AntigravityTaskbarMonitor
         private readonly NotifyIcon _trayIcon;
         private readonly ContextMenuStrip _menu;
         private readonly PoolPopupForm _popup;
+        private readonly QuotaResetDetector _resetDetector = new QuotaResetDetector();
 
         private QuotaSnapshot _snapshot;
+        private DateTime _lastBgPollUtc = DateTime.MinValue;
+        private int _bgPollInFlight;
         private float _dpiScale = 1.0f;
         private int _currentX = -1;
         private int _currentY = -1;
@@ -517,7 +521,94 @@ namespace AntigravityTaskbarMonitor
         private void RefreshDataAndSync(bool forceRedraw)
         {
             _snapshot = QuotaDataStore.LoadFreshestSnapshot();
+            DateTime utcNow = DateTime.UtcNow;
+            if (_snapshot != null)
+            {
+                List<QuotaResetEvent> resetEvents = _resetDetector.Evaluate(_snapshot, utcNow);
+                if (resetEvents.Count > 0)
+                {
+                    NotifyQuotaResets(resetEvents, false);
+                }
+            }
+            MaybeTriggerBackgroundPoll(utcNow, false);
             RenderAndSync(forceRedraw);
+        }
+
+        private void MaybeTriggerBackgroundPoll(DateTime utcNow, bool forceImmediate)
+        {
+            if (!_settings.AutoPollWebMonitor && !forceImmediate) return;
+            if (!forceImmediate)
+            {
+                if ((utcNow - _lastBgPollUtc).TotalSeconds < 90.0) return;
+                if (_snapshot != null && !QuotaDataStore.IsSnapshotOlderThan(_snapshot, utcNow, 90.0)) return;
+            }
+            if (System.Threading.Interlocked.CompareExchange(ref _bgPollInFlight, 1, 0) != 0) return;
+
+            _lastBgPollUtc = utcNow;
+            System.Threading.ThreadPool.QueueUserWorkItem(delegate
+            {
+                bool refreshed = false;
+                try
+                {
+                    refreshed = QuotaDataStore.TryTriggerWebMonitorRefresh(8000);
+                }
+                finally
+                {
+                    System.Threading.Interlocked.Exchange(ref _bgPollInFlight, 0);
+                }
+
+                if (refreshed && !IsDisposed && IsHandleCreated)
+                {
+                    try
+                    {
+                        BeginInvoke((MethodInvoker)delegate
+                        {
+                            if (!IsDisposed)
+                            {
+                                RefreshDataAndSync(false);
+                            }
+                        });
+                    }
+                    catch
+                    {
+                    }
+                }
+            });
+        }
+
+        private void NotifyQuotaResets(List<QuotaResetEvent> events, bool ignoreModeAndFullscreen)
+        {
+            if (events == null || events.Count == 0) return;
+            List<QuotaResetEvent> targetEvents = ignoreModeAndFullscreen
+                ? events
+                : QuotaResetDetector.FilterEvents(events, _settings.ResetNotifyMode);
+            if (targetEvents.Count == 0) return;
+
+            if (!ignoreModeAndFullscreen &&
+                _settings.HideOnFullscreen &&
+                TaskbarLocator.IsQuietOrFullscreenActive(Handle, _popup.Handle))
+            {
+                return;
+            }
+
+            string title;
+            string body;
+            QuotaResetDetector.FormatBalloonNotification(targetEvents, out title, out body);
+            if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(body)) return;
+
+            if (_settings.NotifySound)
+            {
+                try { SystemSounds.Asterisk.Play(); }
+                catch { }
+            }
+
+            try
+            {
+                _trayIcon.ShowBalloonTip(5000, title, body, ToolTipIcon.Info);
+            }
+            catch
+            {
+            }
         }
 
         private void RenderAndSync(bool forceRedraw)
@@ -1008,6 +1099,46 @@ namespace AntigravityTaskbarMonitor
             posMenu.DropDownItems.Add(autoStartItem);
             _menu.Items.Add(posMenu);
 
+            var notifyMenu = new ToolStripMenuItem("重置提醒通知");
+            AddNotifyModeMenuItem(notifyMenu, "僅通知無預警提前重設 (預設)", "early");
+            AddNotifyModeMenuItem(notifyMenu, "所有配額重設都通知 (含到期)", "all");
+            AddNotifyModeMenuItem(notifyMenu, "關閉重設通知", "off");
+            notifyMenu.DropDownItems.Add(new ToolStripSeparator());
+
+            var soundItem = new ToolStripMenuItem("重設時播放提示音");
+            soundItem.Checked = _settings.NotifySound;
+            soundItem.Click += delegate
+            {
+                _settings.NotifySound = !_settings.NotifySound;
+                QuotaDataStore.SaveSettings(_settings);
+            };
+            notifyMenu.DropDownItems.Add(soundItem);
+
+            var autoPollItem = new ToolStripMenuItem("無面板時背景自動刷新 (每 90 秒)");
+            autoPollItem.Checked = _settings.AutoPollWebMonitor;
+            autoPollItem.Click += delegate
+            {
+                _settings.AutoPollWebMonitor = !_settings.AutoPollWebMonitor;
+                QuotaDataStore.SaveSettings(_settings);
+            };
+            notifyMenu.DropDownItems.Add(autoPollItem);
+
+            notifyMenu.DropDownItems.Add(new ToolStripSeparator());
+            var testNotifyItem = new ToolStripMenuItem("立即測試重設通知");
+            testNotifyItem.Click += delegate
+            {
+                var sample = new QuotaResetEvent();
+                sample.PoolKey = "Gemini";
+                sample.PoolLabel = "Gemini";
+                sample.IsWeekly = false;
+                sample.Kind = QuotaResetKind.Early;
+                sample.PreviousPct = 35.0;
+                sample.CurrentPct = 100.0;
+                NotifyQuotaResets(new List<QuotaResetEvent> { sample }, true);
+            };
+            notifyMenu.DropDownItems.Add(testNotifyItem);
+            _menu.Items.Add(notifyMenu);
+
             _menu.Items.Add(new ToolStripSeparator());
 
             string webUrl = QuotaDataStore.DiscoverWebMonitorUrl();
@@ -1025,7 +1156,11 @@ namespace AntigravityTaskbarMonitor
             _menu.Items.Add(webItem);
 
             var refreshItem = new ToolStripMenuItem("立即重新整理");
-            refreshItem.Click += delegate { RefreshDataAndSync(true); };
+            refreshItem.Click += delegate
+            {
+                RefreshDataAndSync(true);
+                MaybeTriggerBackgroundPoll(DateTime.UtcNow, true);
+            };
             _menu.Items.Add(refreshItem);
 
             _menu.Items.Add(new ToolStripSeparator());
@@ -1056,6 +1191,18 @@ namespace AntigravityTaskbarMonitor
                 _settings.BarMode = modeKey;
                 QuotaDataStore.SaveSettings(_settings);
                 RenderAndSync(true);
+            };
+            parent.DropDownItems.Add(item);
+        }
+
+        private void AddNotifyModeMenuItem(ToolStripMenuItem parent, string label, string modeKey)
+        {
+            var item = new ToolStripMenuItem(label);
+            item.Checked = string.Equals(_settings.ResetNotifyMode, modeKey, StringComparison.OrdinalIgnoreCase);
+            item.Click += delegate
+            {
+                _settings.ResetNotifyMode = modeKey;
+                QuotaDataStore.SaveSettings(_settings);
             };
             parent.DropDownItems.Add(item);
         }

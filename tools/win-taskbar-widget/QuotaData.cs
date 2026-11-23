@@ -60,6 +60,194 @@ namespace AntigravityTaskbarMonitor
         FullBars = 2
     }
 
+    internal enum QuotaResetKind
+    {
+        Scheduled = 0,
+        Early = 1
+    }
+
+    internal sealed class QuotaResetEvent
+    {
+        public string PoolKey;
+        public string PoolLabel;
+        public bool IsWeekly;
+        public QuotaResetKind Kind;
+        public double PreviousPct;
+        public double CurrentPct;
+        public DateTime? PreviousResetUtc;
+        public DateTime? CurrentResetUtc;
+    }
+
+    internal sealed class QuotaResetDetector
+    {
+        private sealed class WindowBaseline
+        {
+            public double RemainingPct;
+            public DateTime? ResetTimeUtc;
+        }
+
+        private readonly Dictionary<string, WindowBaseline> _baselines =
+            new Dictionary<string, WindowBaseline>(StringComparer.OrdinalIgnoreCase);
+
+        private static readonly DateTime UnixEpochUtc = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        public List<QuotaResetEvent> Evaluate(QuotaSnapshot snapshot, DateTime utcNow)
+        {
+            var events = new List<QuotaResetEvent>();
+            if (snapshot == null ||
+                !snapshot.HasOfficialData ||
+                snapshot.IsStale ||
+                snapshot.RefreshFailed ||
+                snapshot.Pools == null ||
+                snapshot.Pools.Count == 0)
+            {
+                return events;
+            }
+
+            long refMs = snapshot.FetchedAtMs > 0 ? snapshot.FetchedAtMs : snapshot.UpdatedAtMs;
+            DateTime evalUtc = refMs > 0 ? UnixEpochUtc.AddMilliseconds(refMs) : utcNow;
+
+            for (int i = 0; i < snapshot.Pools.Count; i++)
+            {
+                QuotaPoolInfo pool = snapshot.Pools[i];
+                if (pool == null || string.IsNullOrWhiteSpace(pool.PoolKey)) continue;
+
+                EvaluateWindow(pool, false, evalUtc, events);
+                EvaluateWindow(pool, true, evalUtc, events);
+            }
+
+            return events;
+        }
+
+        private void EvaluateWindow(
+            QuotaPoolInfo pool,
+            bool isWeekly,
+            DateTime evalUtc,
+            List<QuotaResetEvent> events)
+        {
+            BarMetricValue metric = QuotaDataStore.GetBarMetric(pool, isWeekly, "remaining");
+            if (!metric.Available) return;
+
+            string key = pool.PoolKey + "|" + (isWeekly ? "7d" : "5h");
+            WindowBaseline prev;
+            if (_baselines.TryGetValue(key, out prev))
+            {
+                double delta = metric.Pct - prev.RemainingPct;
+                bool jumpedSignificantly = delta >= 15.0 || (prev.RemainingPct < 95.0 && metric.Pct >= 99.5);
+                if (jumpedSignificantly)
+                {
+                    bool isEarly = !prev.ResetTimeUtc.HasValue ||
+                                   prev.ResetTimeUtc.Value > evalUtc.AddMinutes(2.0);
+                    var ev = new QuotaResetEvent();
+                    ev.PoolKey = pool.PoolKey;
+                    ev.PoolLabel = !string.IsNullOrWhiteSpace(pool.PoolLabel) ? pool.PoolLabel : pool.PoolKey;
+                    ev.IsWeekly = isWeekly;
+                    ev.Kind = isEarly ? QuotaResetKind.Early : QuotaResetKind.Scheduled;
+                    ev.PreviousPct = prev.RemainingPct;
+                    ev.CurrentPct = metric.Pct;
+                    ev.PreviousResetUtc = prev.ResetTimeUtc;
+                    ev.CurrentResetUtc = metric.ResetTimeUtc;
+                    events.Add(ev);
+                }
+
+                prev.RemainingPct = metric.Pct;
+                prev.ResetTimeUtc = metric.ResetTimeUtc;
+            }
+            else
+            {
+                var baseline = new WindowBaseline();
+                baseline.RemainingPct = metric.Pct;
+                baseline.ResetTimeUtc = metric.ResetTimeUtc;
+                _baselines[key] = baseline;
+            }
+        }
+
+        public static List<QuotaResetEvent> FilterEvents(List<QuotaResetEvent> events, string resetNotifyMode)
+        {
+            var filtered = new List<QuotaResetEvent>();
+            if (events == null || events.Count == 0) return filtered;
+            if (string.Equals(resetNotifyMode, "off", StringComparison.OrdinalIgnoreCase))
+            {
+                return filtered;
+            }
+
+            bool onlyEarly = !string.Equals(resetNotifyMode, "all", StringComparison.OrdinalIgnoreCase);
+            for (int i = 0; i < events.Count; i++)
+            {
+                QuotaResetEvent ev = events[i];
+                if (ev == null) continue;
+                if (onlyEarly && ev.Kind != QuotaResetKind.Early) continue;
+                filtered.Add(ev);
+            }
+            return filtered;
+        }
+
+        public static void FormatBalloonNotification(
+            List<QuotaResetEvent> events,
+            out string title,
+            out string body)
+        {
+            if (events == null || events.Count == 0)
+            {
+                title = string.Empty;
+                body = string.Empty;
+                return;
+            }
+
+            bool hasEarly = false;
+            for (int i = 0; i < events.Count; i++)
+            {
+                if (events[i].Kind == QuotaResetKind.Early)
+                {
+                    hasEarly = true;
+                    break;
+                }
+            }
+
+            if (events.Count == 1)
+            {
+                QuotaResetEvent ev = events[0];
+                string win = ev.IsWeekly ? "7d" : "5h";
+                title = ev.Kind == QuotaResetKind.Early
+                    ? "Antigravity 配額提前重設"
+                    : "Antigravity 配額已重設";
+                body = string.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0} ({1}) 已從 {2}% 恢復至 {3}%",
+                    ev.PoolLabel,
+                    win,
+                    (int)Math.Floor(ev.PreviousPct + 1e-6),
+                    (int)Math.Floor(ev.CurrentPct + 1e-6));
+                return;
+            }
+
+            title = hasEarly
+                ? string.Format(CultureInfo.InvariantCulture, "Antigravity {0} 項配額提前重設", events.Count)
+                : string.Format(CultureInfo.InvariantCulture, "Antigravity {0} 項配額已重設", events.Count);
+
+            var sb = new StringBuilder();
+            int limit = Math.Min(events.Count, 4);
+            for (int i = 0; i < limit; i++)
+            {
+                QuotaResetEvent ev = events[i];
+                string win = ev.IsWeekly ? "7d" : "5h";
+                if (i > 0) sb.Append("；");
+                sb.AppendFormat(
+                    CultureInfo.InvariantCulture,
+                    "{0}({1}) {2}%→{3}%",
+                    ev.PoolLabel,
+                    win,
+                    (int)Math.Floor(ev.PreviousPct + 1e-6),
+                    (int)Math.Floor(ev.CurrentPct + 1e-6));
+            }
+            if (events.Count > limit)
+            {
+                sb.AppendFormat(CultureInfo.InvariantCulture, " 等共 {0} 項", events.Count);
+            }
+            body = sb.ToString();
+        }
+    }
+
     internal sealed class WidgetSettings
     {
         public string PinnedPoolKey;
@@ -68,6 +256,9 @@ namespace AntigravityTaskbarMonitor
         public string BarMode;
         public int OffsetX;
         public bool HideOnFullscreen;
+        public string ResetNotifyMode;
+        public bool NotifySound;
+        public bool AutoPollWebMonitor;
 
         public WidgetSettings()
         {
@@ -77,6 +268,9 @@ namespace AntigravityTaskbarMonitor
             BarMode = "auto";
             OffsetX = 0;
             HideOnFullscreen = true;
+            ResetNotifyMode = "early";
+            NotifySound = true;
+            AutoPollWebMonitor = true;
         }
 
         public WidgetSettings Clone()
@@ -88,6 +282,9 @@ namespace AntigravityTaskbarMonitor
             copy.BarMode = BarMode;
             copy.OffsetX = OffsetX;
             copy.HideOnFullscreen = HideOnFullscreen;
+            copy.ResetNotifyMode = ResetNotifyMode;
+            copy.NotifySound = NotifySound;
+            copy.AutoPollWebMonitor = AutoPollWebMonitor;
             return copy;
         }
     }
@@ -140,6 +337,41 @@ namespace AntigravityTaskbarMonitor
         {
             string geminiBase = ResolveGeminiBaseDir();
             return Path.Combine(geminiBase, "antigravity", "sidecar_data", "usage-monitor", "taskbar-widget-settings.json");
+        }
+
+        public static bool TryTriggerWebMonitorRefresh(int timeoutMs)
+        {
+            string baseUrl = DiscoverWebMonitorUrl();
+            if (string.IsNullOrEmpty(baseUrl)) return false;
+
+            int effectiveTimeout = timeoutMs > 0 ? timeoutMs : 8000;
+            try
+            {
+                string endpoint = baseUrl.TrimEnd('/') + "/api/telemetry?force=1";
+                var req = (HttpWebRequest)WebRequest.Create(endpoint);
+                req.Method = "GET";
+                req.Proxy = null;
+                req.Timeout = effectiveTimeout;
+                req.ReadWriteTimeout = effectiveTimeout;
+                req.UserAgent = "AntigravityTaskbarMonitor/1.0";
+                using (var resp = (HttpWebResponse)req.GetResponse())
+                {
+                    int code = (int)resp.StatusCode;
+                    return code >= 200 && code < 300;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool IsSnapshotOlderThan(QuotaSnapshot snap, DateTime utcNow, double thresholdSeconds)
+        {
+            if (snap == null || snap.UpdatedAtMs <= 0) return true;
+            DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            DateTime updatedUtc = epoch.AddMilliseconds(snap.UpdatedAtMs);
+            return (utcNow - updatedUtc).TotalSeconds >= thresholdSeconds;
         }
 
         public static string DiscoverWebMonitorUrl()
@@ -267,6 +499,26 @@ namespace AntigravityTaskbarMonitor
                 {
                     defaults.HideOnFullscreen = hideFs.Value;
                 }
+
+                string notifyMode = ReadString(dict, "resetNotifyMode");
+                if (string.Equals(notifyMode, "early", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(notifyMode, "all", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(notifyMode, "off", StringComparison.OrdinalIgnoreCase))
+                {
+                    defaults.ResetNotifyMode = notifyMode.ToLowerInvariant();
+                }
+
+                bool? notifySound = ReadNullableBool(dict, "notifySound");
+                if (notifySound.HasValue)
+                {
+                    defaults.NotifySound = notifySound.Value;
+                }
+
+                bool? autoPoll = ReadNullableBool(dict, "autoPollWebMonitor");
+                if (autoPoll.HasValue)
+                {
+                    defaults.AutoPollWebMonitor = autoPoll.Value;
+                }
             }
             catch
             {
@@ -293,6 +545,9 @@ namespace AntigravityTaskbarMonitor
                 payload["barMode"] = settings.BarMode ?? "auto";
                 payload["offsetX"] = settings.OffsetX;
                 payload["hideOnFullscreen"] = settings.HideOnFullscreen;
+                payload["resetNotifyMode"] = settings.ResetNotifyMode ?? "early";
+                payload["notifySound"] = settings.NotifySound;
+                payload["autoPollWebMonitor"] = settings.AutoPollWebMonitor;
 
                 string json = Json.Serialize(payload);
                 string tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";

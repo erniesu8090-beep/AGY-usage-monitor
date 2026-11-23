@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
@@ -133,6 +134,9 @@ namespace AntigravityTaskbarMonitor
                     s.BarMode = "mini";
                     s.OffsetX = -48;
                     s.HideOnFullscreen = false;
+                    s.ResetNotifyMode = "all";
+                    s.NotifySound = false;
+                    s.AutoPollWebMonitor = false;
                     QuotaDataStore.SaveSettings(s);
 
                     WidgetSettings loaded = QuotaDataStore.LoadSettings();
@@ -142,6 +146,9 @@ namespace AntigravityTaskbarMonitor
                     Assert(loaded.BarMode == "mini", "BarMode round-trip");
                     Assert(loaded.OffsetX == -48, "OffsetX round-trip");
                     Assert(loaded.HideOnFullscreen == false, "HideOnFullscreen round-trip");
+                    Assert(loaded.ResetNotifyMode == "all", "ResetNotifyMode round-trip");
+                    Assert(loaded.NotifySound == false, "NotifySound round-trip");
+                    Assert(loaded.AutoPollWebMonitor == false, "AutoPollWebMonitor round-trip");
 
                     // 6b. Web monitor discovery reads panel\data\{standalone-runtime.json,settings.json} and verifies active port
                     string panelDataDir = Path.Combine(tempDir, "antigravity", "sidecar_data", "usage-monitor", "panel", "data");
@@ -183,7 +190,126 @@ namespace AntigravityTaskbarMonitor
                 Assert(QuotaDataStore.ResolveDisplayLayoutMode("mini", true, 300, 145, 62) == BarLayoutMode.MiniText, "Manual mini overrides auto");
                 passed++;
 
-                // 9. Live snapshot read check (non-fatal if no snapshot on CI, validates readability if present)
+                // 9. QuotaResetDetector & notification formatting tests
+                var detector = new QuotaResetDetector();
+                DateTime baseUtc = new DateTime(2026, 11, 20, 10, 0, 0, DateTimeKind.Utc);
+                long baseMs = (long)(baseUtc - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+
+                var snapInit = new QuotaSnapshot();
+                snapInit.HasOfficialData = true;
+                snapInit.IsStale = false;
+                snapInit.FetchedAtMs = baseMs;
+                snapInit.UpdatedAtMs = baseMs;
+                snapInit.Pools.Add(new QuotaPoolInfo
+                {
+                    PoolKey = "Gemini",
+                    PoolLabel = "Gemini",
+                    Has5h = true,
+                    RemainingPct = 32.0,
+                    ResetTimeUtc = baseUtc.AddHours(3),
+                    HasWeekly = true,
+                    WeeklyRemainingPct = 60.0,
+                    WeeklyResetTimeUtc = baseUtc.AddDays(3)
+                });
+                Assert(detector.Evaluate(snapInit, baseUtc).Count == 0, "Initial snapshot should not notify");
+
+                // Stale snapshot must be ignored and must not wipe baseline
+                var snapStale = new QuotaSnapshot();
+                snapStale.HasOfficialData = true;
+                snapStale.IsStale = true;
+                snapStale.FetchedAtMs = baseMs + 30000;
+                snapStale.Pools.Add(new QuotaPoolInfo
+                {
+                    PoolKey = "Gemini",
+                    PoolLabel = "Gemini",
+                    Has5h = true,
+                    RemainingPct = 100.0,
+                    ResetTimeUtc = null
+                });
+                Assert(detector.Evaluate(snapStale, baseUtc.AddSeconds(30)).Count == 0, "Stale snapshot must not trigger notification");
+
+                // Small delta does not trigger
+                var snapMinor = new QuotaSnapshot();
+                snapMinor.HasOfficialData = true;
+                snapMinor.IsStale = false;
+                snapMinor.FetchedAtMs = baseMs + 60000;
+                snapMinor.Pools.Add(new QuotaPoolInfo
+                {
+                    PoolKey = "Gemini",
+                    PoolLabel = "Gemini",
+                    Has5h = true,
+                    RemainingPct = 34.0,
+                    ResetTimeUtc = baseUtc.AddHours(3),
+                    HasWeekly = true,
+                    WeeklyRemainingPct = 60.0,
+                    WeeklyResetTimeUtc = baseUtc.AddDays(3)
+                });
+                Assert(detector.Evaluate(snapMinor, baseUtc.AddMinutes(1)).Count == 0, "Minor fluctuation must not trigger");
+
+                // Early unexpected reset (3 hours left, jumps from 34% to 100%)
+                var snapEarly = new QuotaSnapshot();
+                snapEarly.HasOfficialData = true;
+                snapEarly.IsStale = false;
+                snapEarly.FetchedAtMs = baseMs + 120000;
+                snapEarly.Pools.Add(new QuotaPoolInfo
+                {
+                    PoolKey = "Gemini",
+                    PoolLabel = "Gemini",
+                    Has5h = true,
+                    RemainingPct = 100.0,
+                    ResetTimeUtc = baseUtc.AddHours(5),
+                    HasWeekly = true,
+                    WeeklyRemainingPct = 60.0,
+                    WeeklyResetTimeUtc = baseUtc.AddDays(3)
+                });
+                List<QuotaResetEvent> earlyEvents = detector.Evaluate(snapEarly, baseUtc.AddMinutes(2));
+                Assert(earlyEvents.Count == 1, "Expected 1 early reset event");
+                Assert(earlyEvents[0].Kind == QuotaResetKind.Early && !earlyEvents[0].IsWeekly, "Should classify 5h jump as Early");
+                Assert(QuotaResetDetector.FilterEvents(earlyEvents, "early").Count == 1, "early mode keeps Early");
+                Assert(QuotaResetDetector.FilterEvents(earlyEvents, "off").Count == 0, "off mode filters all");
+
+                string nTitle;
+                string nBody;
+                QuotaResetDetector.FormatBalloonNotification(earlyEvents, out nTitle, out nBody);
+                Assert(nTitle.Contains("提前重設") && nBody.Contains("Gemini (5h)") && nBody.Contains("34%") && nBody.Contains("100%"), "Formatted balloon text mismatch");
+
+                // Drop usage, wait past reset time, then scheduled reset
+                var snapUsed = new QuotaSnapshot();
+                snapUsed.HasOfficialData = true;
+                snapUsed.FetchedAtMs = baseMs + 180000;
+                snapUsed.Pools.Add(new QuotaPoolInfo
+                {
+                    PoolKey = "Gemini",
+                    PoolLabel = "Gemini",
+                    Has5h = true,
+                    RemainingPct = 12.0,
+                    ResetTimeUtc = baseUtc.AddHours(1)
+                });
+                Assert(detector.Evaluate(snapUsed, baseUtc.AddMinutes(3)).Count == 0, "Usage drop must not notify");
+
+                DateTime afterReset = baseUtc.AddHours(1).AddMinutes(5);
+                long afterResetMs = (long)(afterReset - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+                var snapScheduled = new QuotaSnapshot();
+                snapScheduled.HasOfficialData = true;
+                snapScheduled.FetchedAtMs = afterResetMs;
+                snapScheduled.Pools.Add(new QuotaPoolInfo
+                {
+                    PoolKey = "Gemini",
+                    PoolLabel = "Gemini",
+                    Has5h = true,
+                    RemainingPct = 100.0,
+                    ResetTimeUtc = afterReset.AddHours(5)
+                });
+                List<QuotaResetEvent> schedEvents = detector.Evaluate(snapScheduled, afterReset);
+                Assert(schedEvents.Count == 1 && schedEvents[0].Kind == QuotaResetKind.Scheduled, "Expired reset should classify as Scheduled");
+                Assert(QuotaResetDetector.FilterEvents(schedEvents, "early").Count == 0, "early mode ignores Scheduled");
+                Assert(QuotaResetDetector.FilterEvents(schedEvents, "all").Count == 1, "all mode keeps Scheduled");
+
+                Assert(QuotaDataStore.IsSnapshotOlderThan(snapInit, baseUtc.AddSeconds(95), 90.0), "95s should be older than 90s");
+                Assert(!QuotaDataStore.IsSnapshotOlderThan(snapInit, baseUtc.AddSeconds(30), 90.0), "30s should not be older than 90s");
+                passed++;
+
+                // 10. Live snapshot read check (non-fatal if no snapshot on CI, validates readability if present)
                 QuotaSnapshot liveSnap = QuotaDataStore.LoadFreshestSnapshot();
                 string liveInfo = liveSnap != null
                     ? string.Format(CultureInfo.InvariantCulture, "live pools={0}, active={1}", liveSnap.Pools.Count, liveSnap.ActivePoolKey ?? "none")
