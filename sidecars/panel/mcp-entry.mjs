@@ -23,6 +23,14 @@ const SUPPORTED_MCP_VERSIONS = new Set([
 const DEFAULT_MCP_VERSION = '2025-03-26';
 const DEFAULT_FALLBACK_VERSION = '1.5.1';
 
+// 所有查詢工具皆為本機閉鎖環境的唯讀操作，明確宣告 MCP 四項工具提示欄位以符合客戶端與目錄檢查規範
+const READ_ONLY_TOOL_ANNOTATIONS = Object.freeze({
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
+});
+
 export const MCP_TOOL_DEFS = Object.freeze([
   Object.freeze({
     name: 'get_quota_status',
@@ -38,7 +46,7 @@ export const MCP_TOOL_DEFS = Object.freeze([
       },
       additionalProperties: false,
     },
-    annotations: { readOnlyHint: true },
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
   }),
   Object.freeze({
     name: 'get_conversation_usage',
@@ -64,7 +72,7 @@ export const MCP_TOOL_DEFS = Object.freeze([
       },
       additionalProperties: false,
     },
-    annotations: { readOnlyHint: true },
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
   }),
   Object.freeze({
     name: 'get_usage_summary',
@@ -89,7 +97,7 @@ export const MCP_TOOL_DEFS = Object.freeze([
       },
       additionalProperties: false,
     },
-    annotations: { readOnlyHint: true },
+    annotations: READ_ONLY_TOOL_ANNOTATIONS,
   }),
 ]);
 

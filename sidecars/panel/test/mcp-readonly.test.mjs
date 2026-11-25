@@ -82,7 +82,20 @@ test('mcp_config.json uses usage-monitor and mcp-entry exposes 3 read-only MCP t
     ['get_quota_status', 'get_conversation_usage', 'get_usage_summary']
   );
   for (const def of MCP_TOOL_DEFS) {
-    assert.equal(def.annotations?.readOnlyHint, true);
+    assert.deepEqual(def.annotations, {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    });
+  }
+  for (const tool of listRes.result.tools) {
+    assert.deepEqual(tool.annotations, {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    });
   }
 
   assert.equal(handleMcpJsonRpcMessage({ jsonrpc: '2.0', method: 'notifications/initialized' }), null);
